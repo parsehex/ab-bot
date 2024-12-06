@@ -1,1 +1,1 @@
-node dist/app.js --ws=ws://127.0.0.1:3501 --num=12 --type distribute --character Aggressive --flag rainbow
+node dist/app.js "--ws=ws://${SERVER_IP}:3501" --num=12 --type distribute --character Aggressive --flag rainbow
