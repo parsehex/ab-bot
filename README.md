@@ -1,23 +1,28 @@
-# AB-Bot
+# AB-Bot (fork)
+
+> This is a fork of the original [AB-Bot](https://github.com/spatiebot/ab-bot) repository, for use in [ab-docker](https://github.com/parsehex/ab-docker).
+>
+> Even though this is meant to run with a docker container, my goal is to make sure it still works standalone.
 
 This is a nodejs Airmash bot API + implementation based on the wight Airbattle API.
 
-The bots can do FFA and CTF.  
+The bots can do FFA and CTF.
 
 In CTF one bot will appoint one player as the leader, who can issue commands to manage the bots, mostly compatible with the commands of the existing CTF bots.
 
-In FFA it can also run as a protecting bot, sticking to a player and defending the player from enemies.  
+In FFA it can also run as a protecting bot, sticking to a player and defending the player from enemies.
 
 The bots will detect if there are no active players, and stop playing to prevent eating unnecessary CPU usage.
 
 # Building
+
 You'll need Node v12 or more, and the gulp-cli.
 
 1. clone repository and submodule (`git clone --recurse-submodules git://github.com/spatiebot/ab-bot.git`)
 2. `npm i`
 3. `gulp`
 
-# Running 
+# Running
 
 `node dist/app.js --ws=euCtf --num=5`
 
@@ -26,10 +31,10 @@ You'll need Node v12 or more, and the gulp-cli.
 Parameters:
 
     --num: the number of bots. Default = 1. If this number is more than 1, the bots will be balanced against the total number of players. If there are more players than bots, the total number of bots will be reduced. To prevent this, add --keep to the commandline.
-    --type: the type of aircraft used. Default = random. Use type=distribute to select each plane type sequentially. 
+    --type: the type of aircraft used. Default = random. Use type=distribute to select each plane type sequentially.
     --flag: the flag. Default = random
     --name: name of the bot. Default = random firstname based on the flag, prefixed by [b]_ for bot
-    --ws: websocket to connect to. Use the full url or one of the shortcuts:  
+    --ws: websocket to connect to. Use the full url or one of the shortcuts:
         local: "ws://127.0.0.1:3501/ffa",
         euFfa1: "wss://eu.airmash.online/ffa1",
         euFfa2: "wss://eu.airmash.online/ffa2",
@@ -57,7 +62,7 @@ Parameters:
 
 ## Bot behavior
 
-In the default mode (auto), the bots will split up between defending and attacking. 
+In the default mode (auto), the bots will split up between defending and attacking.
 
 Defenders will stick to the flag, attack intruders, and try to recover if the flag was taken or displaced.
 
@@ -77,34 +82,34 @@ Commands are issued in the team chat (or public chat, or whispering, whatever yo
 
 Commands are always prefixed by a # sign.
 
-**#def, #defend, #recap, #recover, #r, #d**  
+**#def, #defend, #recap, #recover, #r, #d**
 Any of these commands will switch all bots to "D"-mode, defending the base and recapturing the flag.
 
-**#cap, #capture, #escort, #c, #e**  
+**#cap, #capture, #escort, #c, #e**
 Any of these commands will switch all bots to "A"-mode; they will try to grab the enemy flag and escort the flag carrier.
 
-**#auto**  
-The default mode will be activated: bots will be split up between A and D mode.  
+**#auto**
+The default mode will be activated: bots will be split up between A and D mode.
 
-**#assist, #protect**, **#a**, **#p**  
-Needs the playername as parameter, or "me" as a shortcut for the speaker.  
-Example: `#assist Spatie`  
-Will go to the player requesting assistance and defend him: in case of "me" the team leader, otherwise the mentioned player. 
+**#assist, #protect**, **#a**, **#p**
+Needs the playername as parameter, or "me" as a shortcut for the speaker.
+Example: `#assist Spatie`
+Will go to the player requesting assistance and defend him: in case of "me" the team leader, otherwise the mentioned player.
 
-**#drop, #f**  
-If one of the bots is carrying the flag, this command will make the bot fly towards you and drop the flag at your feet. It will only do so if you're within reach, and it will only try to do so for 10 seconds.  
+**#drop, #f**
+If one of the bots is carrying the flag, this command will make the bot fly towards you and drop the flag at your feet. It will only do so if you're within reach, and it will only try to do so for 10 seconds.
 This is one of the commands that non-team leaders can issue.
 
-**#type**  
+**#type**
 Needs a number or "random" as parameter. Makes the bot switch to a given aircraft type. Example: `#type 2` will make the bots switch to Goliaths. Use `#type random` to make them select a random aircraft, `#type distribute` to sequentially select each type.
 
-**#leader**  
+**#leader**
 Needs the playername as parameter. Makes the mentioned player the new leader. You can't make the masterbot the leader, because he will be muted
 for spamming if you do. Example: `#leader rookie`.
 
-**#leader-challenge, #challenge-leader**  
-This will call for the leader to reply. If (s)he doesn't reply after 30 seconds, a new election is held. This command can only be issued 2.5 minutes after the previous one / an election, and not within 1 minute of an upcoming election. Bots should never reply to the challenge.  
+**#leader-challenge, #challenge-leader**
+This will call for the leader to reply. If (s)he doesn't reply after 30 seconds, a new election is held. This command can only be issued 2.5 minutes after the previous one / an election, and not within 1 minute of an upcoming election. Bots should never reply to the challenge.
 This is one of the commands that non-team leaders can issue.
 
-**#status**  
+**#status**
 Shows stats.
