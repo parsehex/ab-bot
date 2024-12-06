@@ -1,6 +1,6 @@
 # AB-Bot (fork)
 
-> This is a fork of the original [AB-Bot](https://github.com/spatiebot/ab-bot) repository, for use in [ab-docker](https://github.com/parsehex/ab-docker).
+> This is a fork of the original [AB-Bot](https://github.com/spatiebot/ab-bot) repository, for use in [ab-docker](https://github.com/parsehex/ab-docker). Please see `ab-docker` for more information.
 >
 > Even though this is meant to run with a docker container, my goal is to make sure it still works standalone.
 
