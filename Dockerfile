@@ -1,5 +1,5 @@
 # Build stage
-FROM node:12-alpine AS build
+FROM --platform=linux/amd64 node:12-alpine AS build
 
 WORKDIR /app
 COPY ab-bot/package*.json ./
