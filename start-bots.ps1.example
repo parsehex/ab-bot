@@ -1,0 +1,5 @@
+Start-Sleep -Seconds 5
+
+$ws = "ws://${env:SERVER_IP}:3501"
+$arguments = "--ws=$ws --num=12 --type distribute --character Aggressive --flag rainbow"
+Start-Process -FilePath "node" -ArgumentList "dist/app.js", $arguments
