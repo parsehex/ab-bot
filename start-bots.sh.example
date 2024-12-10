@@ -1,3 +1,9 @@
+#!/bin/bash
+
+# Check if a server IP and number of bots are passed as arguments, otherwise use the environment variable and default value
+SERVER_IP=${1:-$SERVER_IP}
+NUM_BOTS=${2:-12}
+
 sleep 5
 
-node dist/app.js "--ws=ws://${SERVER_IP}:3501" --num=12 --type distribute --character Aggressive --flag rainbow
+node dist/app.js "--ws=ws://${SERVER_IP}:3501" --num=${NUM_BOTS} --type distribute --character Aggressive --flag rainbow

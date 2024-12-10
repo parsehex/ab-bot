@@ -1,5 +1,10 @@
+param (
+    [string]$ServerIP = $env:SERVER_IP,
+    [int]$NumBots = 12
+)
+
 Start-Sleep -Seconds 5
 
-$ws = "ws://${env:SERVER_IP}:3501"
-$arguments = "--ws=$ws --num=12 --type distribute --character Aggressive --flag rainbow"
+$ws = "ws://${ServerIP}:3501"
+$arguments = "--ws=$ws --num=$NumBots --type distribute --character Aggressive --flag rainbow"
 Start-Process -FilePath "node" -ArgumentList "dist/app.js", $arguments
