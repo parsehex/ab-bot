@@ -11,10 +11,10 @@ export class PlaneTypeSelection {
             tm.setTimeout(async () => {
                 const me = env.me();
                 if (me.health === 1 && me.speed.x === 0 && me.speed.y === 0) {
-                    resolve();
+                    resolve(void 0);
                 } else {
                     await this.waitForHealthAndZeroSpeed(env, tm);
-                    resolve();
+                    resolve(void 0);
                 }
             }, 500);
         });
@@ -22,7 +22,7 @@ export class PlaneTypeSelection {
 
     private wait(ms: number, tm: TimeoutManager): Promise<any> {
         return new Promise((resolve) =>
-            tm.setTimeout(() => resolve(), ms));
+            tm.setTimeout(() => resolve(void 0), ms));
     }
 
     async switch(env: IAirmashEnvironment, tm: TimeoutManager): Promise<any> {

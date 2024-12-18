@@ -14,11 +14,12 @@
         "yargs": "^14.0.0"
     },
     "devDependencies": {
+        "@types/node": "^22.10.2",
         "@types/pino": "^5.8.11",
         "@types/workerpool": "^5.0.0",
         "@types/yargs": "^13.0.2",
         "gulp": "^4.0.0",
         "gulp-typescript": "^5.0.1",
-        "typescript": "^3.6.4"
+        "typescript": "^4.3.2"
     }
 }
