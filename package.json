@@ -2,6 +2,7 @@
     "name": "ab-bot",
     "version": "1.0.0",
     "scripts": {
+        "start": "node dist/app.js --ws=ws://127.0.0.1:3501 --type distribute --character Aggressive --flag rainbow",
         "build": "gulp"
     },
     "dependencies": {
