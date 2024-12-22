@@ -1,9 +1,10 @@
 import { CtfTargetSelection } from "../bot/targetselection/ctf-target-selection";
 import { Calculations } from "../bot/calculations";
 import { BotContext } from "../botContext";
+import { InfTargetSelection } from '../bot/targetselection/inf-target-selection';
 
 export class Slave {
-    private targetSelection: CtfTargetSelection;
+    private targetSelection: CtfTargetSelection | InfTargetSelection;
     private lastCommand: string;
     private lastParam: string;
     private lastPlayerId: number;
@@ -47,7 +48,7 @@ export class Slave {
 
     setDefaultRole(value: string) {
         this.myDefaultRole = value;
-        if (this.targetSelection) {
+        if (this.targetSelection && this.targetSelection instanceof CtfTargetSelection) {
             this.targetSelection.selectRole();
         }
     }
@@ -56,11 +57,15 @@ export class Slave {
         this.targetSelection = ts;
     }
 
+    setInfTargetSelection(ts: InfTargetSelection) {
+        this.targetSelection = ts;
+    }
+
     execCtfCommand(playerId: number, command: string, param: string) {
         this.lastPlayerId = playerId;
         this.lastCommand = command;
         this.lastParam = param;
-        if (this.targetSelection) {
+        if (this.targetSelection instanceof CtfTargetSelection) {
             this.targetSelection.execCtfCommand(playerId, command, param);
         }
     }
