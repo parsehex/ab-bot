@@ -3,7 +3,8 @@
     "version": "1.0.0",
     "scripts": {
         "start": "node dist/app.js --ws=ws://127.0.0.1:3501 --type distribute --character Aggressive --flag rainbow",
-        "build": "gulp"
+        "build": "gulp",
+        "build-bin": "npx nexe dist/app.js -o ./app-bin --build --make=\"-j4\""
     },
     "dependencies": {
         "easystarjs": "^0.4.3",
