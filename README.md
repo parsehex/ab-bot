@@ -16,9 +16,9 @@ The bots will detect if there are no active players, and stop playing to prevent
 
 # Building
 
-You'll need Node v12 or more, and the gulp-cli.
+You'll need Node v22, and the gulp-cli.
 
-1. clone repository and submodule (`git clone --recurse-submodules git://github.com/spatiebot/ab-bot.git`)
+1. clone repository and submodule (`git clone --recurse-submodules git://github.com/parsehex/ab-bot.git`)
 2. `npm i`
 3. `gulp`
 
