@@ -1,8 +1,6 @@
 # AB-Bot (fork)
 
-> This is a fork of the original [AB-Bot](https://github.com/spatiebot/ab-bot) repository, for use in [ab-docker](https://github.com/parsehex/ab-docker). Please see `ab-docker` for more information.
->
-> Even though this is meant to run with a docker container, my goal is to make sure it still works standalone.
+> This is a fork of the original [AB-Bot](https://github.com/spatiebot/ab-bot) repository by [Spatiebot](https://github.com/spatiebot), for use in [airbattle-hosting](https://github.com/parsehex/airbattle-hosting). Please see the links for more information.
 
 This is a nodejs Airmash bot API + implementation based on the wight Airbattle API.
 
@@ -12,9 +10,9 @@ In CTF one bot will appoint one player as the leader, who can issue commands to 
 
 In FFA it can also run as a protecting bot, sticking to a player and defending the player from enemies.
 
-The bots will detect if there are no active players, and stop playing to prevent eating unnecessary CPU usage.
+By default, the bots will detect if there are no active players, and stop playing to prevent eating unnecessary CPU usage. If you don't want this, please use the `--noIdle` parameter.
 
-# Building
+## Building
 
 You'll need Node v22, and the gulp-cli.
 
@@ -22,7 +20,7 @@ You'll need Node v22, and the gulp-cli.
 2. `npm i`
 3. `gulp`
 
-# Running
+## Running
 
 `node dist/app.js --ws=euCtf --num=5`
 
@@ -53,14 +51,15 @@ Parameters:
         - Shy
         - Protective (will listen to '#protect me' commands)
 
+    --noIdle: bots should keep playing even with no activity on the server
     --noTeamCoordinator: will only listen to an other team coordinator (can be used to hosts bot on different servers)
     --dev: will log with pretty logging. Default: false.
     --level: the loglevel. Default: warn.
     --keep: don't balance number of bots, see 'num'
 
-# CTF behavior and commands
+## CTF behavior and commands
 
-## Bot behavior
+### Bot behavior
 
 In the default mode (auto), the bots will split up between defending and attacking.
 
@@ -68,7 +67,7 @@ Defenders will stick to the flag, attack intruders, and try to recover if the fl
 
 Attackers will try to grab the enemy flag, and protect the flag carrier if the flag was taken.
 
-## Team leader selection
+### Team leader selection
 
 Commands to the bots can only be issued by the team leader. When the bots join, at the start of each game, and each 10 minutes an election will be held to select the team leader. You can propose yourself as team leader by saying #yes during an election. Other people can vote for you during the election by saying #vote (name).
 
@@ -76,7 +75,7 @@ If a bot is selected as team leader, it will direct the bots into an aggressive 
 
 You can challenge an existing team leader, see below.
 
-## Commands
+### Commands
 
 Commands are issued in the team chat (or public chat, or whispering, whatever you like).
 

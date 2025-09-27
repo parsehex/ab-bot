@@ -30,7 +30,8 @@ export class BotContext {
         private logLevel: string,
         public botIndex: number,
         numBots: number = null,
-        keepBots: boolean = false) {
+        keepBots: boolean = false,
+        public noIdle = false) {
 
         if (botIndex === 0) {
             // this is the first bot, which should manage the number of bots
@@ -98,7 +99,7 @@ export class BotContext {
 
     spawnNewChildBot(botIndex: number): BotContext {
         const context = new BotContext(this.websocketUrl, this.identityGenerator, this.characterConfig,
-            this.isSecondaryTeamCoordinator, this.isDevelopment, this.logLevel, botIndex);
+            this.isSecondaryTeamCoordinator, this.isDevelopment, this.logLevel, botIndex, undefined, undefined, this.noIdle);
         context.startBot();
         return context;
     }

@@ -45,7 +45,7 @@ export class BotSpawner {
             && PlayerInfo.isActive(x)
         ).length;
 
-        const canPause = numActivePlayers === 0;
+        const canPause = this.context.noIdle ? false : (numActivePlayers === 0);
         this.children.forEach(x => x.bot.canPause = canPause);
         this.context.bot.canPause = canPause; // i can pause (or resume) too 
     }
