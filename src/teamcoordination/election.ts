@@ -53,7 +53,12 @@ export class Election {
 
         if (message === "#yes") {
             if (!this.candidates[playerId + '']) {
-                this.candidates[playerId + ''] = 1;
+                // if no leader or the leader is a bot, let any player instantly take lead
+                const leader = this.env.getPlayer(this.existingLeaderId);
+                let votes = 1;
+                if (!leader || leader.name.endsWith('_')) votes = 100;
+                this.candidates[playerId + ''] = votes;
+                if (votes === 100) return this.endElection();
                 this.env.sendWhisper("Your vote has been counted", false, playerId);
             }
         } else {
@@ -72,6 +77,8 @@ export class Election {
     }
 
     private endElection() {
+        if (!this.electionResultResolver) return; // already ran
+        
         let ids = Object.keys(this.candidates);
 
         if (this.existingLeaderId && ids.length === 0) {

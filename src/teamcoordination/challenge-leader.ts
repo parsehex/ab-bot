@@ -30,8 +30,12 @@ export class ChallengeLeader {
             name = player.name;
         }
         this.env.sendTeam("Leader challenge! @" + name + ", say 'x' in the chat in the next 30 seconds to keep your leadership.", true);
+        
+        // TODO imperfect, find better way to detect bot
+        const isBotLeader = player.name.endsWith('_');
+        const timeoutMs = isBotLeader ? 50 : 30 * 1000;
 
-        this.timeoutId = this.context.tm.setTimeout(() => this.endChallenge(true), 30 * 1000);
+        this.timeoutId = this.context.tm.setTimeout(() => this.endChallenge(true), timeoutMs);
         return new Promise((resolve) => {
             this.challengeResolver = resolve;
         })
