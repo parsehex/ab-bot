@@ -78,7 +78,7 @@ export class TeamCoordination {
     }
 
     private onTick() {
-        // alway reconsider being the teamcoordinator, because the teamcoordinator 
+        // alway reconsider being the teamcoordinator, because the teamcoordinator
         // may have quit because of an error
         const me = this.env.me();
 
@@ -168,7 +168,7 @@ export class TeamCoordination {
 
     private async electLeader() {
         if (this.isSecondaryTeamCoordinator) {
-            // this team coordinator is a "silent one", that is, it will listen 
+            // this team coordinator is a "silent one", that is, it will listen
             // for someone to be appointed the leader, and then silently take over that selection
             // here. This allows for multiple sets of bots from different IPs, but it's not tamper-proof.
             return;
@@ -292,6 +292,14 @@ export class TeamCoordination {
                 }
                 break;
 
+            case 'buddy':
+                command = 'buddy';
+                const botsPerPlayer = parseInt(param) || 1;
+                shouldSay = "buddy mode enabled";
+                if (botsPerPlayer > 1)
+                    shouldSay += " (" + botsPerPlayer + " bot" + (botsPerPlayer > 1 ? "s" : "") + " per player)";
+                break;
+
             case 'drop':
             case 'f':
                 command = 'drop';
@@ -340,6 +348,35 @@ export class TeamCoordination {
 
         if (command === 'auto') {
             execAuto(me.team);
+        } else if (command === 'buddy') {
+            const teamMembers = this.env.getPlayers().filter(x => x.team === me.team && !slaves.some(s => s.id === x.id) && x.id !== me.id && PlayerInfo.isActive(x));
+            const mySlaves = teamSlaves(me.team);
+            const botsPerPlayer = parseInt(param) || 1;
+            const assignedBotIds = new Set<number>();
+
+            for (const playerToProtect of teamMembers) {
+                const availableBots = mySlaves.filter(bot => !assignedBotIds.has(bot.id));
+
+                availableBots.sort((a, b) => {
+                    const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(this.env.getPlayer(a.id)), PlayerInfo.getMostReliablePos(playerToProtect)).distance;
+                    const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(this.env.getPlayer(b.id)), PlayerInfo.getMostReliablePos(playerToProtect)).distance;
+                    return distA - distB;
+                });
+
+                // Assign the closest bots up to botsPerPlayer limit
+                for (let i = 0; i < Math.min(botsPerPlayer, availableBots.length); i++) {
+                    const bot = availableBots[i];
+                    bot.execCtfCommand(speaker.id, 'assist', playerToProtect.id + '');
+                    assignedBotIds.add(bot.id);
+                }
+            }
+
+            // Any remaining unassigned bots go to 'auto' mode
+            mySlaves.forEach(bot => {
+                if (!assignedBotIds.has(bot.id)) {
+                    bot.execCtfCommand(speaker.id, 'auto', '');
+                }
+            });
         } else {
             teamSlaves(me.team).forEach(x => x.execCtfCommand(speaker.id, command, param));
         }

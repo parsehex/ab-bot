@@ -95,6 +95,10 @@ Needs the playername as parameter, or "me" as a shortcut for the speaker.
 Example: `#assist Spatie`
 Will go to the player requesting assistance and defend him: in case of "me" the team leader, otherwise the mentioned player.
 
+**#buddy**
+Assigns bot(s) to protect each non-bot team member. Optionally takes a number as a parameter to specify the number of bots per player. The nearest available bots will be assigned.
+Example: `#buddy 2` (assigns 2 bots to each player)
+
 **#drop, #f**
 If one of the bots is carrying the flag, this command will make the bot fly towards you and drop the flag at your feet. It will only do so if you're within reach, and it will only try to do so for 10 seconds.
 This is one of the commands that non-team leaders can issue.
