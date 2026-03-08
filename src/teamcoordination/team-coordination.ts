@@ -61,6 +61,7 @@ export class TeamCoordination {
     private isElectionOngoing: boolean;
     private lastSaid: string;
     private gameIsAboutToStart: boolean;
+    private currentBotStrategy: string = 'auto';
 
     private get env(): IAirmashEnvironment {
         return this.context.env;
@@ -128,7 +129,38 @@ export class TeamCoordination {
             this.electLeader();
         }
 
+        if (this.teamLeaderId === me.id) {
+            this.updateBotStrategy(me, ctfScores);
+        }
+
         this.tickStopwatch.start();
+    }
+
+    private updateBotStrategy(me: PlayerInfo, ctfScores: { 1: number; 2: number }) {
+        const myTeam = me.team;
+        const otherTeam = myTeam === 1 ? 2 : 1;
+        const myScore = ctfScores[myTeam] || 0;
+        const otherScore = ctfScores[otherTeam] || 0;
+
+        const myFlag = this.env.getFlagInfo(myTeam);
+        const myFlagIsOut = !!myFlag.carrierId;
+
+        let desiredStrategy = 'auto';
+
+        if (otherScore === 2 && myScore === 0) {
+            desiredStrategy = 'defend';
+        } else if (otherScore - myScore >= 1 && myFlagIsOut) {
+            desiredStrategy = 'defend';
+        } else if (myScore >= 2) {
+            desiredStrategy = 'capture';
+        } else if (myScore === 1 && !myFlagIsOut) {
+            desiredStrategy = 'capture';
+        }
+
+        if (this.currentBotStrategy !== desiredStrategy) {
+            this.currentBotStrategy = desiredStrategy;
+            this.execCtfCommand(me, desiredStrategy, '');
+        }
     }
 
     private setTeamLeader(teamLeaderId: number) {
