@@ -78,7 +78,7 @@ export class Election {
 
     private endElection() {
         if (!this.electionResultResolver) return; // already ran
-        
+
         let ids = Object.keys(this.candidates);
 
         if (this.existingLeaderId && ids.length === 0) {
@@ -95,9 +95,16 @@ export class Election {
 
         if (ids.length === 0) {
             const allTeamPlayers = this.env.getPlayers().filter(x => x.team === me.team && !x.isHidden && PlayerInfo.isActive(x));
-            ids = allTeamPlayers
-                .filter(x => x.id !== me.id) // don't choose myself, because server frowns upon my spamming if i'm both instructing and answering.
-                .map(x => '' + x.id);
+
+            const humanPlayers = allTeamPlayers.filter(x => !x.name.endsWith('_'));
+
+            if (humanPlayers.length > 0) {
+                ids = humanPlayers.map(x => '' + x.id);
+            } else {
+                ids = allTeamPlayers
+                    .filter(x => x.id !== me.id) // don't choose myself
+                    .map(x => '' + x.id);
+            }
 
             for (let i = 0; i < ids.length; i++) {
                 this.candidates[ids[i]] = 1;
