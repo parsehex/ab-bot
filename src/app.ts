@@ -1,5 +1,8 @@
-
+import dotenv from 'dotenv';
+import path from 'path';
 import { argv } from 'yargs';
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env.bots') });
 import { BotIdentityGenerator } from './bot-identity-generator';
 import { BotContext } from './botContext';
 
@@ -24,7 +27,7 @@ const typeConfig = argv.type as string || "random";
 const characterConfig = argv.character as string;
 const noIdle = !!argv.noIdle;
 const isSecondaryTeamCoordinator = !!argv.noTeamCoordinator;
-const numBots = argv.num as number || 1;
+const numBots = parseInt(process.env.NUM_BOTS, 10) || (argv.num as number) || 1;
 const keepBots = !!argv.keep;
 const isDevelopment = !!argv.dev;
 const logLevel = argv.level as string || "warn";
