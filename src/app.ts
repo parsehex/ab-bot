@@ -22,15 +22,15 @@ if (ws && !ws.startsWith('ws') && !ws.startsWith('http')) {
 }
 ws = ws || urls.euFfa1;
 
-const flagConfig = argv.flag as string || "random";
-const typeConfig = argv.type as string || "random";
-const characterConfig = argv.character as string;
+const flagConfig = process.env.BOTS_FLAG || argv.flag as string || "random";
+const typeConfig = process.env.BOTS_TYPE || argv.type as string || "random";
+const characterConfig = process.env.BOTS_CHARACTER || argv.character as string;
 const noIdle = !!argv.noIdle;
 const isSecondaryTeamCoordinator = !!argv.noTeamCoordinator;
 const numBots = parseInt(process.env.NUM_BOTS, 10) || (argv.num as number) || 1;
 const keepBots = !!argv.keep;
 const isDevelopment = !!argv.dev;
-const logLevel = argv.level as string || "warn";
+const logLevel = process.env.BOTS_LOG_LEVEL || argv.level as string || "warn";
 
 const identityGenerator = new BotIdentityGenerator(flagConfig, typeConfig, argv.name as string);
 
