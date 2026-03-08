@@ -23,7 +23,7 @@ class HandOverFlagTarget extends BaseTarget {
     private shouldRecycle: boolean;
     private timer = new StopWatch();
 
-    constructor(private env: IAirmashEnvironment, private logger: Logger, playerID: number) {
+    constructor(private env: IAirmashEnvironment, private logger: Logger, playerID: number, private ignoreDistanceLimit: boolean = false) {
         super();
 
         this.gotoLocationConfig = new GotoLocationConfig(this.env.myId());
@@ -86,7 +86,7 @@ class HandOverFlagTarget extends BaseTarget {
             this.logger.info("pooped the flag");
 
             this.shouldRecycle = true;
-        } else if (delta.distance > TOO_FAR_AWAY_FOR_POOPING_FLAG) {
+        } else if (delta.distance > TOO_FAR_AWAY_FOR_POOPING_FLAG && !this.ignoreDistanceLimit) {
             this.shouldRecycle = true;
         } else {
             this.gotoLocationConfig.desiredDistanceToTarget = 0;

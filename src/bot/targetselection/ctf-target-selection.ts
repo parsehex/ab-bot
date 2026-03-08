@@ -210,6 +210,25 @@ export class CtfTargetSelection implements ITargetSelection {
         const doDefensiveActions = this.myRole === "D" || this.distanceToMyFlag < this.distanceToOtherFlag;
 
         if (this.flagState === FlagStates.ImCarrier || this.flagState === FlagStates.ImCarrierInDangerZone) {
+            if (this.env.me().type === 3) {
+                const goliaths = this.env.getPlayers().filter(p => p.team === this.myTeam && p.type === 2 && p.id !== this.myId && PlayerInfo.isActive(p));
+                if (goliaths.length > 0) {
+                    goliaths.sort((a, b) => {
+                        const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), this.env.me().pos).distance;
+                        const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), this.env.me().pos).distance;
+                        return distA - distB;
+                    });
+                    
+                    const closestGoliath = goliaths[0];
+                    const distToGoli = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestGoliath), this.env.me().pos).distance;
+
+                    if (distToGoli < 4000) {
+                        const target = new HandOverFlagTarget(this.env, this.logger, closestGoliath.id, true);
+                        return target;
+                    }
+                }
+            }
+
             const goHome = new BringFlagHomeTarget(this.env, this.logger, this.defaultMyFlagPos, this.flagState === FlagStates.ImCarrierInDangerZone);
             return goHome;
         }
