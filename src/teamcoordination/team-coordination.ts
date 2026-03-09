@@ -151,7 +151,7 @@ export class TeamCoordination {
         }
 
         const me = this.env.me();
-        const allMyTeamBots = this.env.getPlayers().filter(p => 
+        const allMyTeamBots = this.env.getPlayers().filter(p =>
             p.team === me.team && p.name.endsWith('_')
         );
 
@@ -172,16 +172,16 @@ export class TeamCoordination {
 
         const ratio = gatheredCount / allMyTeamBots.length;
 
-        if (this.meetAnnouncedStep === 0 && ratio >= 0.25) {
+        if (this.meetAnnouncedStep === 0 && ratio >= 0.2) {
             this.env.sendTeam("Gathering... 1/3", false);
             this.meetAnnouncedStep = 1;
-        } else if (this.meetAnnouncedStep === 1 && ratio >= 0.5) {
+        } else if (this.meetAnnouncedStep === 1 && ratio >= 0.40) {
             this.env.sendTeam("Gathering... 2/3", false);
             this.meetAnnouncedStep = 2;
-        } else if (this.meetAnnouncedStep === 2 && ratio >= 0.8) {
+        } else if (this.meetAnnouncedStep === 2 && ratio >= 0.6) {
             this.env.sendTeam("Gathered!", false);
             this.meetAnnouncedStep = 3;
-            this.meetTargetId = null; 
+            this.meetTargetId = null;
         }
     }
 
