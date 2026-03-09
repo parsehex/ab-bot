@@ -71,11 +71,11 @@ export class CtfTargetSelection implements ITargetSelection {
     private get env(): IAirmashEnvironment {
         return this.context.env;
     }
-    
+
     private get logger(): Logger {
         return this.context.logger;
     }
-    
+
     private get character(): BotCharacter {
         return this.context.character;
     }
@@ -219,7 +219,7 @@ export class CtfTargetSelection implements ITargetSelection {
                         const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), this.env.me().pos).distance;
                         return distA - distB;
                     });
-                    
+
                     const closestGoliath = goliaths[0];
                     const distToGoli = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestGoliath), this.env.me().pos).distance;
 
@@ -235,6 +235,38 @@ export class CtfTargetSelection implements ITargetSelection {
         }
 
         if (this.flagState === FlagStates.MyFlagTaken && doDefensiveActions) {
+            const carrier = this.env.getPlayer(this.myFlagInfo.carrierId);
+            if (carrier) {
+                const defenders = this.env.getPlayers().filter(p => p.team === this.myTeam && PlayerInfo.isActive(p));
+                defenders.sort((a,b) => {
+                    const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), PlayerInfo.getMostReliablePos(carrier)).distance;
+                    const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), PlayerInfo.getMostReliablePos(carrier)).distance;
+                    return distA - distB;
+                });
+
+                const myIndex = defenders.findIndex(p => p.id === this.myId);
+
+                // Let's have roughly 1/3 of the closest defenders try to intercept,
+                // but only starting with the 4th closest player (letting 1st - 3rd closest chase)
+                const totalDefenders = defenders.length;
+                const shouldIntercept = myIndex >= 3 && (myIndex % 3 === 2) && myIndex < totalDefenders;
+
+                if (shouldIntercept) {
+                    const carrierPos = PlayerInfo.getMostReliablePos(carrier);
+                    const enemyBase = this.defaultOtherFlagPos;
+
+                    // Target a point 75% of the way from the carrier to their base to head them off
+                    const interceptPos = new Pos({
+                        x: carrierPos.x + (enemyBase.x - carrierPos.x) * 0.75,
+                        y: carrierPos.y + (enemyBase.y - carrierPos.y) * 0.75
+                    });
+
+                    const interceptTarget = new GotoLocationTarget(this.env, this.logger, interceptPos);
+                    interceptTarget.setInfo("Intercept flag carrier");
+                    return interceptTarget;
+                }
+            }
+
             const killFlagCarrier = new OtherPlayerTarget(this.env, this.logger, this.character, [], this.myFlagInfo.carrierId);
             killFlagCarrier.setInfo("Hunt flag carrier");
             return killFlagCarrier;
@@ -249,7 +281,7 @@ export class CtfTargetSelection implements ITargetSelection {
         if (this.myRole === "A") {
             if (this.flagState === FlagStates.OtherFlagTaken) {
                 const carrier = this.env.getPlayer(this.otherFlagInfo.carrierId);
-                
+
                 if (this.env.me().type === 2 && carrier && carrier.type !== 2) {
                     const goliaths = this.env.getPlayers().filter(p => p.team === this.myTeam && p.type === 2 && p.id !== carrier.id && PlayerInfo.isActive(p));
                     goliaths.sort((a,b) => {
@@ -257,7 +289,7 @@ export class CtfTargetSelection implements ITargetSelection {
                         const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), PlayerInfo.getMostReliablePos(carrier)).distance;
                         return distA - distB;
                     });
-                    
+
                     if (goliaths.length > 0 && goliaths[0].id !== this.myId) {
                         // I am a goliath, but NOT the closest one. Head towards enemy base.
                         const gotoEnemyBase = new GotoLocationTarget(this.env, this.logger, this.defaultOtherFlagPos);
