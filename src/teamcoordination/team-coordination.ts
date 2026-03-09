@@ -61,7 +61,7 @@ export class TeamCoordination {
     private isElectionOngoing: boolean;
     private lastSaid: string;
     private gameIsAboutToStart: boolean;
-    private currentBotStrategy: string = 'auto';
+    private currentTeamMode: 'auto' | 'capture' | 'defend' = 'auto';
 
     private meetTargetId: number = null;
     private meetAnnouncedStep: number = 0;
@@ -133,7 +133,7 @@ export class TeamCoordination {
         }
 
         if (this.teamLeaderId === me.id) {
-            this.updateBotStrategy(me, ctfScores);
+            this.updateTeamRoles(me, ctfScores);
         }
 
         if (this.meetTargetId !== null) {
@@ -185,30 +185,67 @@ export class TeamCoordination {
         }
     }
 
-    private updateBotStrategy(me: PlayerInfo, ctfScores: { 1: number; 2: number }) {
+    private updateTeamRoles(me: PlayerInfo, ctfScores: { 1: number; 2: number }) {
         const myTeam = me.team;
         const otherTeam = myTeam === 1 ? 2 : 1;
         const myScore = ctfScores[myTeam] || 0;
         const otherScore = ctfScores[otherTeam] || 0;
+        const mySlaves = teamSlaves(myTeam);
 
-        const myFlag = this.env.getFlagInfo(myTeam);
-        const myFlagIsOut = !!myFlag.carrierId;
-
-        let desiredStrategy = 'auto';
-
-        if (otherScore === 2 && myScore === 0) {
-            desiredStrategy = 'defend';
-        } else if (otherScore - myScore >= 1 && myFlagIsOut) {
-            desiredStrategy = 'defend';
-        } else if (myScore >= 2) {
-            desiredStrategy = 'capture';
-        } else if (myScore === 1 && !myFlagIsOut) {
-            desiredStrategy = 'capture';
+        if (mySlaves.length === 0) {
+            return;
         }
 
-        if (this.currentBotStrategy !== desiredStrategy) {
-            this.currentBotStrategy = desiredStrategy;
-            this.execCtfCommand(me, desiredStrategy, '');
+        // Determine intended roles for slaves based on currentTeamMode
+        let cappersCount = 0;
+        let defendersCount = 0;
+
+        if (this.currentTeamMode === 'capture') {
+            defendersCount = 1;
+            if (otherScore === 1) {
+                defendersCount = 2;
+            } else if (otherScore >= 2) {
+                defendersCount = 3;
+            }
+            
+            // Ensure at least 1 attacker if possible
+            if (defendersCount >= mySlaves.length) {
+                defendersCount = Math.max(1, mySlaves.length - 1);
+            }
+            
+            cappersCount = mySlaves.length - defendersCount;
+            
+        } else if (this.currentTeamMode === 'defend') {
+            cappersCount = 1;
+            if (otherScore - myScore >= 2) {
+                cappersCount = 0;
+            } else if (otherScore - myScore === 1) {
+                const otherFlagInfo = this.env.getFlagInfo(otherTeam);
+                if (otherFlagInfo && otherFlagInfo.carrierId) {
+                    cappersCount = 2; // We are down by 1 and someone grabbed flag, send another capper!
+                }
+            }
+            
+            // Ensure at least 1 defender if possible
+            if (cappersCount >= mySlaves.length) {
+                cappersCount = Math.max(0, mySlaves.length - 1);
+            }
+            
+            defendersCount = mySlaves.length - cappersCount;
+            
+        } else {
+            // 'auto'
+            cappersCount = Math.floor(mySlaves.length / 2) + 1; // Try to have more attackers
+            defendersCount = mySlaves.length - cappersCount;
+        }
+
+        // Assign roles seamlessly
+        for (let i = 0; i < mySlaves.length; i++) {
+            if (i < defendersCount) {
+                mySlaves[i].setRole('D');
+            } else {
+                mySlaves[i].setRole('A');
+            }
         }
     }
 
@@ -448,7 +485,18 @@ export class TeamCoordination {
         }
 
         if (command === 'auto') {
+            this.currentTeamMode = 'auto';
             execAuto(me.team);
+        } else if (command === 'capture') {
+            this.currentTeamMode = 'capture';
+            const mySlaves = teamSlaves(me.team);
+            // We still forward the capture command to reset targets for manual overrides, 
+            // but the role balancer in updateTeamRoles will adjust the actual A/D roles on the fly.
+            mySlaves.forEach(bot => bot.execCtfCommand(speaker.id, 'capture', ''));
+        } else if (command === 'defend') {
+            this.currentTeamMode = 'defend';
+            const mySlaves = teamSlaves(me.team);
+            mySlaves.forEach(bot => bot.execCtfCommand(speaker.id, 'defend', ''));
         } else if (command === 'buddy') {
             const teamMembers = this.env.getPlayers().filter(x => x.team === me.team && !slaves.some(s => s.id === x.id) && x.id !== me.id && PlayerInfo.isActive(x));
             const mySlaves = teamSlaves(me.team);

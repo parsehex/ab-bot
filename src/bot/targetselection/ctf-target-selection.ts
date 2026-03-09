@@ -547,22 +547,20 @@ export class CtfTargetSelection implements ITargetSelection {
                 break;
 
             case 'defend':
-                this.clearAllTargets();
-                this.myRole = "D";
                 this.isAutoMode = false;
                 break;
 
             case 'capture':
-                this.clearAllTargets();
-                this.myRole = "A";
                 this.isAutoMode = false;
                 break;
 
             case 'auto':
-                this.clearAllTargets();
                 this.isAutoMode = true;
-                this.selectRole();
                 break;
         }
+    }
+
+    public setRole(role: "A" | "D") {
+        this.myRole = role;
     }
 }

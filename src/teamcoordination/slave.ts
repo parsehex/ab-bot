@@ -56,6 +56,12 @@ export class Slave {
         this.targetSelection = ts;
     }
 
+    setRole(role: "A" | "D") {
+        if (this.targetSelection) {
+            this.targetSelection.setRole(role);
+        }
+    }
+
     execCtfCommand(playerId: number, command: string, param: string) {
         this.lastPlayerId = playerId;
         this.lastCommand = command;
