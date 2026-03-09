@@ -247,6 +247,24 @@ export class CtfTargetSelection implements ITargetSelection {
 
         if (this.myRole === "A") {
             if (this.flagState === FlagStates.OtherFlagTaken) {
+                const carrier = this.env.getPlayer(this.otherFlagInfo.carrierId);
+                
+                if (this.env.me().type === 2 && carrier && carrier.type !== 2) {
+                    const goliaths = this.env.getPlayers().filter(p => p.team === this.myTeam && p.type === 2 && p.id !== carrier.id && PlayerInfo.isActive(p));
+                    goliaths.sort((a,b) => {
+                        const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), PlayerInfo.getMostReliablePos(carrier)).distance;
+                        const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), PlayerInfo.getMostReliablePos(carrier)).distance;
+                        return distA - distB;
+                    });
+                    
+                    if (goliaths.length > 0 && goliaths[0].id !== this.myId) {
+                        // I am a goliath, but NOT the closest one. Head towards enemy base.
+                        const gotoEnemyBase = new GotoLocationTarget(this.env, this.logger, this.defaultOtherFlagPos);
+                        gotoEnemyBase.setInfo("head towards enemy base");
+                        return gotoEnemyBase;
+                    }
+                }
+
                 const protectCarrier = new ProtectTarget(this.env, this.logger, this.character, Number(this.otherFlagInfo.carrierId), PROTECT_PLAYER_DISTANCE);
                 protectCarrier.setInfo("protect flag carrier");
                 return protectCarrier;

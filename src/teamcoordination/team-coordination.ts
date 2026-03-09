@@ -439,15 +439,21 @@ export class TeamCoordination {
 
     private selectAircraftTypes(team: number, typeSpec: string) {
         let type = 0;
+        let goliCount = 0;
         teamSlaves(team).forEach(s => {
             let planeType = Number(typeSpec);
             if (!planeType) {
                 if (typeSpec === 'distribute' || typeSpec === 'd') {
-                    type++;
-                    if (type > 5) {
-                        type = 1;
-                    }
+                    do {
+                        type++;
+                        if (type > 5) {
+                            type = 1;
+                        }
+                    } while (type === 2 && goliCount >= 2);
                     planeType = type;
+                    if (planeType === 2) {
+                        goliCount++;
+                    }
                 }
                 else {
                     planeType = Calculations.getRandomInt(1, 6);
