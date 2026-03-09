@@ -11,7 +11,7 @@ import { Pos } from "../pos";
 import { Logger } from "../../helper/logger";
 
 const TIME_OUT_SECS = 10;
-const POOP_DISTANCE = 150;
+const POOP_DISTANCE = 40;
 const TOO_FAR_AWAY_FOR_POOPING_FLAG = 1500;
 
 class HandOverFlagTarget extends BaseTarget {

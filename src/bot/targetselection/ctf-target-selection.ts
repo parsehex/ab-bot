@@ -68,6 +68,10 @@ export class CtfTargetSelection implements ITargetSelection {
     private distanceToOtherFlag: number;
     private playerKilledSubscription: number;
     private isAutoMode: boolean = true;
+    
+    // Goliath stuck detection
+    private lastStuckCheckPos: Pos;
+    private stuckStopwatch = new StopWatch();
 
     private get env(): IAirmashEnvironment {
         return this.context.env;
@@ -228,6 +232,49 @@ export class CtfTargetSelection implements ITargetSelection {
                         const target = new HandOverFlagTarget(this.env, this.logger, closestGoliath.id, true);
                         return target;
                     }
+                }
+            } else {
+                // I am a goliath with the flag
+                const myPos = this.env.me().pos;
+                
+                if (!this.lastStuckCheckPos) {
+                    this.lastStuckCheckPos = new Pos(myPos);
+                    this.stuckStopwatch.start();
+                }
+
+                const stuckThresholdSecs = myPos.y > 0 ? 2 : 4;
+                if (this.stuckStopwatch.elapsedSeconds() > stuckThresholdSecs) {
+                    const distMoved = Calculations.getDelta(this.lastStuckCheckPos, myPos).distance;
+                    if (distMoved < 150) {
+                        // Goliath is stuck!
+                        // Is anyone standing on me? (within < 100 units)
+                        const teammates = this.env.getPlayers().filter(p => p.team === this.myTeam && p.id !== this.myId && PlayerInfo.isActive(p));
+                        teammates.sort((a, b) => {
+                            const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
+                            const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                            return distA - distB;
+                        });
+
+                        if (teammates.length > 0) {
+                            const closestTeammate = teammates[0];
+                            const distToTeammate = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestTeammate), myPos).distance;
+                            if (distToTeammate < 100) {
+                                const target = new HandOverFlagTarget(this.env, this.logger, closestTeammate.id, true);
+                                target.isSticky = true;
+                                this.logger.info("Stuck, handover to " + closestTeammate.name);
+                                
+                                // Reset the tracker so we don't spam if they drop and re-grab
+                                this.lastStuckCheckPos = new Pos(myPos);
+                                this.stuckStopwatch.start();
+                                
+                                return target;
+                            }
+                        }
+                    }
+                    
+                    // Reset interval
+                    this.lastStuckCheckPos = new Pos(myPos);
+                    this.stuckStopwatch.start();
                 }
             }
 
