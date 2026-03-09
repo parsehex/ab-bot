@@ -85,7 +85,6 @@ export class MeetTarget extends BaseTarget {
         // This is safe for the default spatiebot names
         const allMyTeamBots = this.env.getPlayers().filter(p => 
             p.team === me.team && 
-            PlayerInfo.isActive(p) && 
             p.name.endsWith('_')
         );
 

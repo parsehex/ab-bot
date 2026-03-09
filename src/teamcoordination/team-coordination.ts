@@ -152,7 +152,7 @@ export class TeamCoordination {
 
         const me = this.env.me();
         const allMyTeamBots = this.env.getPlayers().filter(p => 
-            p.team === me.team && PlayerInfo.isActive(p) && p.name.endsWith('_')
+            p.team === me.team && p.name.endsWith('_')
         );
 
         if (allMyTeamBots.length === 0) {
