@@ -66,6 +66,7 @@ export class CtfTargetSelection implements ITargetSelection {
     private distanceToMyFlag: number;
     private distanceToOtherFlag: number;
     private playerKilledSubscription: number;
+    private isAutoMode: boolean = true;
 
     private get env(): IAirmashEnvironment {
         return this.context.env;
@@ -302,14 +303,37 @@ export class CtfTargetSelection implements ITargetSelection {
             this.distanceToOtherFlag = Calculations.getDelta(this.otherFlagInfo.pos, me.pos).distance;
         }
 
-        if (!this.myRole) {
+        if (!this.myRole || this.isAutoMode) {
             this.selectRole();
         }
     }
 
     public selectRole() {
-        this.myRole = this.slave.getDefaultRole();
-        this.logger.info("My role is " + this.myRole);
+        let desiredRole = this.slave.getDefaultRole();
+
+        if (this.isAutoMode && this.myFlagInfo && this.otherFlagInfo) {
+            const ctfScores = this.env.getCtfScores();
+            if (ctfScores && (ctfScores[1] !== undefined || ctfScores[2] !== undefined)) {
+                const myScore = ctfScores[this.myTeam] || 0;
+                const otherScore = ctfScores[this.otherTeam] || 0;
+                const myFlagIsOut = !!this.myFlagInfo.carrierId;
+
+                if (otherScore === 2 && myScore === 0) {
+                    desiredRole = 'D';
+                } else if (otherScore - myScore >= 1 && myFlagIsOut) {
+                    desiredRole = 'D';
+                } else if (myScore >= 2) {
+                    desiredRole = 'A';
+                } else if (myScore === 1 && !myFlagIsOut) {
+                    desiredRole = 'A';
+                }
+            }
+        }
+
+        if (this.myRole !== desiredRole) {
+            this.myRole = desiredRole;
+            this.logger.info("My role is " + this.myRole);
+        }
     }
 
     private determineFlagState(): FlagStates {
@@ -430,20 +454,24 @@ export class CtfTargetSelection implements ITargetSelection {
                     target.isSticky = true;
                     this.targets.push(target);
                 }
+                this.isAutoMode = false;
                 break;
 
             case 'defend':
                 this.clearAllTargets();
                 this.myRole = "D";
+                this.isAutoMode = false;
                 break;
 
             case 'capture':
                 this.clearAllTargets();
                 this.myRole = "A";
+                this.isAutoMode = false;
                 break;
 
             case 'auto':
                 this.clearAllTargets();
+                this.isAutoMode = true;
                 this.selectRole();
                 break;
         }
