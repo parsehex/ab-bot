@@ -356,6 +356,36 @@ export class CtfTargetSelection implements ITargetSelection {
                     this.stuckStopwatch.start();
                 }
             }
+            
+            // Low health handoff
+            const meInfo = this.env.me();
+            if (meInfo.health < 0.25) {
+                const teammates = this.env.getPlayers().filter(p => p.team === this.myTeam && p.id !== this.myId && PlayerInfo.isActive(p) && p.health > 0.6);
+                
+                if (teammates.length > 0) {
+                    const myPos = meInfo.pos;
+                    teammates.sort((a, b) => {
+                        const aIsNonBot = !a.name.endsWith("_");
+                        const bIsNonBot = !b.name.endsWith("_");
+                        
+                        if (aIsNonBot && !bIsNonBot) return -1;
+                        if (!aIsNonBot && bIsNonBot) return 1;
+                        
+                        const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
+                        const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                        return distA - distB;
+                    });
+                    
+                    const closestHealthyTeammate = teammates[0];
+                    const distToTeammate = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestHealthyTeammate), myPos).distance;
+                    if (distToTeammate < 40) {
+                        this.env.sendTeam(`I'm dying, take the flag ${closestHealthyTeammate.name}!`, false);
+                        const target = new HandOverFlagTarget(this.env, this.logger, closestHealthyTeammate.id, true);
+                        target.isSticky = true;
+                        return target;
+                    }
+                }
+            }
 
             const goHome = new BringFlagHomeTarget(this.env, this.logger, this.defaultMyFlagPos, this.flagState === FlagStates.ImCarrierInDangerZone);
             return goHome;
