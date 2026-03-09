@@ -70,7 +70,7 @@ export class BotContext {
     }
 
     private startBotInner() {
-        const identity = this.identityGenerator.generateIdentity();
+        const identity = this.identityGenerator.generateIdentity(this.botIndex);
         this.character = BotCharacter[this.characterConfig] || BotCharacter.get(identity.aircraftType);
         this.logger = new Logger(this.botIndex, identity.name, this.isDevelopment, this.logLevel);
 

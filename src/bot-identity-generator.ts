@@ -34,10 +34,12 @@ const flagCodes = Object.keys(localesForFlag);
 
 export class BotIdentityGenerator {
 
+    private usedNames = new Set<string>();
+
     constructor(private flagConfig: string, private planeTypeConfig: string, private nameConfig: string) {
     }
 
-    generateIdentity(): BotIdentity {
+    generateIdentity(botIndex: number): BotIdentity {
         let aircraftType: number;
         let flag: string;
       
@@ -65,7 +67,24 @@ export class BotIdentityGenerator {
         }
 
         const x = require('faker/locale/' + lang);
-        const name = this.nameConfig || x.name.firstName() + "_";
+        
+        let name: string;
+        if (this.nameConfig) {
+            name = botIndex === 0 ? this.nameConfig : `${this.nameConfig}-${botIndex}`;
+        } else {
+            // Ensure variety and uniqueness when using faker
+            let attempts = 0;
+            do {
+                name = x.name.firstName() + "_";
+                attempts++;
+            } while (this.usedNames.has(name) && attempts < 10);
+
+            if (this.usedNames.has(name)) {
+                name = name + botIndex;
+            }
+        }
+
+        this.usedNames.add(name);
 
         return {
             name,
