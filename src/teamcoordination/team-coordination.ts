@@ -63,6 +63,9 @@ export class TeamCoordination {
     private gameIsAboutToStart: boolean;
     private currentBotStrategy: string = 'auto';
 
+    private meetTargetId: number = null;
+    private meetAnnouncedStep: number = 0;
+
     private get env(): IAirmashEnvironment {
         return this.context.env;
     }
@@ -133,7 +136,53 @@ export class TeamCoordination {
             this.updateBotStrategy(me, ctfScores);
         }
 
+        if (this.meetTargetId !== null) {
+            this.updateMeetProgress();
+        }
+
         this.tickStopwatch.start();
+    }
+
+    private updateMeetProgress() {
+        const targetPlayer = this.env.getPlayer(this.meetTargetId);
+        if (!targetPlayer) {
+            this.meetTargetId = null;
+            return;
+        }
+
+        const me = this.env.me();
+        const allMyTeamBots = this.env.getPlayers().filter(p => 
+            p.team === me.team && PlayerInfo.isActive(p) && p.name.endsWith('_')
+        );
+
+        if (allMyTeamBots.length === 0) {
+            this.meetTargetId = null;
+            return;
+        }
+
+        let gatheredCount = 0;
+        const targetPos = PlayerInfo.getMostReliablePos(targetPlayer);
+        for (const bot of allMyTeamBots) {
+            const botPos = PlayerInfo.getMostReliablePos(bot);
+            const dist = Calculations.getDelta(targetPos, botPos).distance;
+            if (dist < 300) {
+                gatheredCount++;
+            }
+        }
+
+        const ratio = gatheredCount / allMyTeamBots.length;
+
+        if (this.meetAnnouncedStep === 0 && ratio >= 0.25) {
+            this.env.sendTeam("Gathering... 1/3", false);
+            this.meetAnnouncedStep = 1;
+        } else if (this.meetAnnouncedStep === 1 && ratio >= 0.5) {
+            this.env.sendTeam("Gathering... 2/3", false);
+            this.meetAnnouncedStep = 2;
+        } else if (this.meetAnnouncedStep === 2 && ratio >= 0.8) {
+            this.env.sendTeam("Gathered!", false);
+            this.meetAnnouncedStep = 3;
+            this.meetTargetId = null; 
+        }
     }
 
     private updateBotStrategy(me: PlayerInfo, ctfScores: { 1: number; 2: number }) {
@@ -320,6 +369,26 @@ export class TeamCoordination {
                     if (playerToAssist && playerToAssist.team === me.team) {
                         shouldSay = "assist mode enabled";
                         param = playerToAssist.id + '';
+                    }
+                }
+                break;
+
+            case 'meet':
+                command = 'meet';
+                const meetPlayerName = param;
+                let playerToMeet: PlayerInfo;
+                if (meetPlayerName) {
+                    if (meetPlayerName === 'me') {
+                        playerToMeet = speaker;
+                    } else {
+                        playerToMeet = this.env.getPlayers().find(x => x.name && x.name.toLowerCase() === meetPlayerName.toLowerCase());
+                    }
+
+                    if (playerToMeet && playerToMeet.team === me.team) {
+                        shouldSay = "meet mode enabled";
+                        param = playerToMeet.id + '';
+                        this.meetTargetId = playerToMeet.id;
+                        this.meetAnnouncedStep = 0;
                     }
                 }
                 break;

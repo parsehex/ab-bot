@@ -19,6 +19,7 @@ import { Slave } from "../../teamcoordination/slave";
 import { TOO_FAR_AWAY_FOR_POOPING_FLAG, HandOverFlagTarget } from "../targets/hand-over-flag-target";
 import { BotContext } from "../../botContext";
 import { PlayerInfo } from "../airmash/player-info";
+import { MeetTarget } from "../targets/meet-target";
 
 enum FlagStates {
     Unknown = "Unkown",
@@ -487,6 +488,15 @@ export class CtfTargetSelection implements ITargetSelection {
                     this.targets.push(target);
                 }
                 this.isAutoMode = false;
+                break;
+
+            case 'meet':
+                const playerToMeet = this.env.getPlayer(Number(param));
+                if (playerToMeet && playerToMeet.team === this.myTeam && playerToMeet.id !== me.id) {
+                    const target = new MeetTarget(this.env, this.logger, playerToMeet.id);
+                    target.isSticky = true;
+                    this.targets.push(target);
+                }
                 break;
 
             case 'defend':
