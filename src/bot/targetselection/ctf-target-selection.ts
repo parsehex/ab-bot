@@ -44,6 +44,7 @@ const redFlagPositions = {
 const REEVALUATION_TIME_MS = 1500;
 const CRATE_DISTANCE_THRESHOLD = 500;
 const FIGHT_DISTANCE_THRESHOLD = 300;
+const ATTACKER_FIGHT_DISTANCE_THRESHOLD = 1500;
 const PROTECT_FLAG_DISTANCE = 700;
 const PROTECT_PLAYER_DISTANCE = 10;
 
@@ -73,6 +74,11 @@ export class CtfTargetSelection implements ITargetSelection {
     private lastStuckCheckPos: Pos;
     private stuckStopwatch = new StopWatch();
 
+    // Non-bot flag handoff
+    private flagOfferPlayerId: number = null;
+    private flagOfferChatStopwatch = new StopWatch();
+    private flagOfferOnTopStopwatch = new StopWatch();
+
     private get env(): IAirmashEnvironment {
         return this.context.env;
     }
@@ -95,6 +101,10 @@ export class CtfTargetSelection implements ITargetSelection {
         this.clearAllTargets();
         this.lastLog = null;
         this.stopwatch.start();
+        
+        this.flagOfferPlayerId = null;
+        this.flagOfferChatStopwatch.start();
+        this.flagOfferOnTopStopwatch.start();
 
         this.slave.repeatLastCommand();
     }
@@ -165,7 +175,11 @@ export class CtfTargetSelection implements ITargetSelection {
             // attack enemies nearby
             if (this.myRole === "A") {
                 const fight = new OtherPlayerTarget(this.env, this.logger, this.character, []);
-                fight.setMaxDistance(FIGHT_DISTANCE_THRESHOLD);
+                
+                const isCarryingFlag = this.flagState === FlagStates.ImCarrier;
+                const fightDistance = isCarryingFlag ? FIGHT_DISTANCE_THRESHOLD : ATTACKER_FIGHT_DISTANCE_THRESHOLD;
+                
+                fight.setMaxDistance(fightDistance);
                 if (fight.isValid()) {
                     this.targets.push(fight);
                     return;
@@ -232,6 +246,74 @@ export class CtfTargetSelection implements ITargetSelection {
                         const target = new HandOverFlagTarget(this.env, this.logger, closestGoliath.id, true);
                         return target;
                     }
+                }
+                
+                // Handoff to non-bot players
+                const myPos = this.env.me().pos;
+                const nonBots = this.env.getPlayers().filter(p => p.team === this.myTeam && p.id !== this.myId && PlayerInfo.isActive(p) && !p.name.endsWith("_"));
+                
+                if (nonBots.length > 0) {
+                    nonBots.sort((a, b) => {
+                        const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
+                        const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                        return distA - distB;
+                    });
+                    
+                    const closestNonBot = nonBots[0];
+                    const distToNonBot = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestNonBot), myPos).distance;
+                    
+                    if (distToNonBot < 400) {
+                        // Check if enemies are nearby
+                        const enemies = this.env.getPlayers().filter(p => p.team !== this.myTeam && PlayerInfo.isActive(p) && !p.isHidden);
+                        let isSafe = true;
+                        
+                        if (enemies.length > 0) {
+                            enemies.sort((a, b) => {
+                                const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
+                                const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                                return distA - distB;
+                            });
+                            
+                            const closestEnemyDist = Calculations.getDelta(PlayerInfo.getMostReliablePos(enemies[0]), myPos).distance;
+                            if (closestEnemyDist < 800) {
+                                isSafe = false;
+                            }
+                        }
+                        
+                        if (isSafe) {
+                            if (this.flagOfferPlayerId !== closestNonBot.id) {
+                                this.flagOfferPlayerId = closestNonBot.id;
+                                this.flagOfferChatStopwatch.start();
+                                this.flagOfferOnTopStopwatch.start();
+                            }
+                            
+                            if (this.flagOfferChatStopwatch.elapsedSeconds() > 10) {
+                                this.env.sendChat(`Hey ${closestNonBot.name}, want the flag? Come here`, false);
+                                this.flagOfferChatStopwatch.start();
+                            }
+                            
+                            if (distToNonBot < 120) {
+                                if (this.flagOfferOnTopStopwatch.elapsedSeconds() > 1) {
+                                    this.logger.info(`Handing flag over to non-bot ${closestNonBot.name}`);
+                                    const target = new HandOverFlagTarget(this.env, this.logger, closestNonBot.id, true);
+                                    target.isSticky = true;
+                                    
+                                    this.flagOfferPlayerId = null;
+                                    this.flagOfferOnTopStopwatch.start();
+                                    
+                                    return target;
+                                }
+                            } else {
+                                this.flagOfferOnTopStopwatch.start();
+                            }
+                        } else {
+                            this.flagOfferPlayerId = null;
+                        }
+                    } else {
+                        this.flagOfferPlayerId = null;
+                    }
+                } else {
+                    this.flagOfferPlayerId = null;
                 }
             } else {
                 // I am a goliath with the flag
