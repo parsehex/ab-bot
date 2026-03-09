@@ -66,6 +66,11 @@ export class DodgeEnemiesTarget extends BaseTarget {
     }
 
     isValid(): boolean {
+        const me = this.env.me();
+        if (me && me.hasShield) {
+            return false;
+        }
+
         const enemy = this.env.getPlayer(this.playerToAvoidID);
 
         if (!enemy || enemy.isHidden || !enemy.isInView || enemy.isStealthed) {

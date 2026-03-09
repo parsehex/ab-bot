@@ -53,6 +53,11 @@ export class DodgeMissileTarget extends BaseTarget {
     }
 
     isValid(): boolean {
+        const me = this.env.me();
+        if (me && me.hasShield) {
+            return false;
+        }
+
         const obj = this.getMissileToAvoid();
 
         if (!obj) {
