@@ -210,7 +210,7 @@ export class CtfTargetSelection implements ITargetSelection {
         const doDefensiveActions = this.myRole === "D" || this.distanceToMyFlag < this.distanceToOtherFlag;
 
         if (this.flagState === FlagStates.ImCarrier || this.flagState === FlagStates.ImCarrierInDangerZone) {
-            if (this.env.me().type === 3) {
+            if (this.env.me().type !== 2) {
                 const goliaths = this.env.getPlayers().filter(p => p.team === this.myTeam && p.type === 2 && p.id !== this.myId && PlayerInfo.isActive(p));
                 if (goliaths.length > 0) {
                     goliaths.sort((a, b) => {
@@ -222,7 +222,7 @@ export class CtfTargetSelection implements ITargetSelection {
                     const closestGoliath = goliaths[0];
                     const distToGoli = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestGoliath), this.env.me().pos).distance;
 
-                    if (distToGoli < 4000) {
+                    if (distToGoli < 400) {
                         const target = new HandOverFlagTarget(this.env, this.logger, closestGoliath.id, true);
                         return target;
                     }
