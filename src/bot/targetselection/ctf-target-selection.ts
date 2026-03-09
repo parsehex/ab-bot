@@ -245,21 +245,45 @@ export class CtfTargetSelection implements ITargetSelection {
                     }
                 }
 
-                // Handoff to non-bot players
+                // Flag handoff to teammates
+                const meType = this.env.me().type;
                 const myPos = this.env.me().pos;
-                const nonBots = this.env.getPlayers().filter(p => p.team === this.myTeam && p.id !== this.myId && PlayerInfo.isActive(p) && !p.name.endsWith("_"));
 
-                if (nonBots.length > 0) {
-                    nonBots.sort((a, b) => {
+                let receivers = this.env.getPlayers().filter(p => {
+                    if (p.team !== this.myTeam || p.id === this.myId || !PlayerInfo.isActive(p)) return false;
+
+                    if (meType === 3) {
+                        if (p.type === 3 && p.name.endsWith("_")) return false;
+                        return true;
+                    } else {
+                        // Non-(heli or non-goliath) bots only drop to humans
+                        return !p.name.endsWith("_");
+                    }
+                });
+
+                if (receivers.length > 0) {
+                    receivers.sort((a, b) => {
+                        const getScore = (p: PlayerInfo) => {
+                            const isHuman = !p.name.endsWith("_");
+                            if (isHuman && p.type !== 3) return 1; // Human non-heli
+                            if (!isHuman && p.type !== 3) return 2; // Bot non-heli
+                            if (isHuman && p.type === 3) return 3; // Human heli
+                            return 4; // Backup
+                        };
+
+                        const scoreA = getScore(a);
+                        const scoreB = getScore(b);
+                        if (scoreA !== scoreB) return scoreA - scoreB;
+
                         const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
                         const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
                         return distA - distB;
                     });
 
-                    const closestNonBot = nonBots[0];
-                    const distToNonBot = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestNonBot), myPos).distance;
+                    const bestReceiver = receivers[0];
+                    const distToReceiver = Calculations.getDelta(PlayerInfo.getMostReliablePos(bestReceiver), myPos).distance;
 
-                    if (distToNonBot < 400) {
+                    if (distToReceiver < 400) {
                         // Check if enemies are nearby
                         const enemies = this.env.getPlayers().filter(p => p.team !== this.myTeam && PlayerInfo.isActive(p) && !p.isHidden);
                         let isSafe = true;
@@ -278,21 +302,21 @@ export class CtfTargetSelection implements ITargetSelection {
                         }
 
                         if (isSafe) {
-                            if (this.flagOfferPlayerId !== closestNonBot.id) {
-                                this.flagOfferPlayerId = closestNonBot.id;
+                            if (this.flagOfferPlayerId !== bestReceiver.id) {
+                                this.flagOfferPlayerId = bestReceiver.id;
                                 this.flagOfferChatStopwatch.start();
                                 this.flagOfferOnTopStopwatch.start();
                             }
 
                             if (this.flagOfferChatStopwatch.elapsedSeconds() > 10) {
-                                this.env.sendChat(`Hey ${closestNonBot.name}, want the flag? Come here`, false);
+                                this.env.sendChat(`Hey ${bestReceiver.name}, want the flag? Come here`, false);
                                 this.flagOfferChatStopwatch.start();
                             }
 
-                            if (distToNonBot < 120) {
+                            if (distToReceiver < 120) {
                                 if (this.flagOfferOnTopStopwatch.elapsedSeconds() > 1) {
-                                    this.logger.info(`Handing flag over to non-bot ${closestNonBot.name}`);
-                                    const target = new HandOverFlagTarget(this.env, this.logger, closestNonBot.id, true);
+                                    this.logger.info(`Handing flag over to teammate ${bestReceiver.name}`);
+                                    const target = new HandOverFlagTarget(this.env, this.logger, bestReceiver.id, true);
                                     target.isSticky = true;
 
                                     this.flagOfferPlayerId = null;
@@ -356,26 +380,26 @@ export class CtfTargetSelection implements ITargetSelection {
                     this.stuckStopwatch.start();
                 }
             }
-            
+
             // Low health handoff
             const meInfo = this.env.me();
             if (meInfo.health < 0.25) {
                 const teammates = this.env.getPlayers().filter(p => p.team === this.myTeam && p.id !== this.myId && PlayerInfo.isActive(p) && p.health > 0.6);
-                
+
                 if (teammates.length > 0) {
                     const myPos = meInfo.pos;
                     teammates.sort((a, b) => {
                         const aIsNonBot = !a.name.endsWith("_");
                         const bIsNonBot = !b.name.endsWith("_");
-                        
+
                         if (aIsNonBot && !bIsNonBot) return -1;
                         if (!aIsNonBot && bIsNonBot) return 1;
-                        
+
                         const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
                         const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
                         return distA - distB;
                     });
-                    
+
                     const closestHealthyTeammate = teammates[0];
                     const distToTeammate = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestHealthyTeammate), myPos).distance;
                     if (distToTeammate < 40) {
