@@ -7,6 +7,7 @@ import { AirmashApiFacade } from "./bot/airmash/airmash-api";
 import { StopWatch } from "./helper/timer";
 import { BotIdentityGenerator } from "./bot-identity-generator";
 import { BotSpawner } from "./bot-spawner";
+import { AircraftTypeAllocator } from "./helper/aircraft-type-allocator";
 
 const MAX_RESTART_TRIES = 3;
 
@@ -31,7 +32,9 @@ export class BotContext {
         public botIndex: number,
         numBots: number = null,
         keepBots: boolean = false,
-        public noIdle = false) {
+        public noIdle = false,
+        public allocator: AircraftTypeAllocator = null,
+        public originalTypeConfig: string = null) {
 
         if (botIndex === 0) {
             // this is the first bot, which should manage the number of bots

@@ -5,6 +5,7 @@ import { argv } from 'yargs';
 dotenv.config({ path: path.resolve(__dirname, '../../.env.bots') });
 import { BotIdentityGenerator } from './bot-identity-generator';
 import { BotContext } from './botContext';
+import { AircraftTypeAllocator } from './helper/aircraft-type-allocator';
 
 const urls = {
     local: "ws://127.0.0.1:3501/ffa",
@@ -32,8 +33,10 @@ const isDevelopment = !!argv.dev;
 const logLevel = process.env.BOTS_LOG_LEVEL || argv.level as string || "warn";
 const noIdle = !!argv.noIdle || process.env.BOTS_NO_IDLE === 'true';
 
-const identityGenerator = new BotIdentityGenerator(flagConfig, typeConfig, argv.name as string);
+const allocator = new AircraftTypeAllocator(ws);
+const resolvedTypeConfig = allocator.getNextType(typeConfig);
+const identityGenerator = new BotIdentityGenerator(flagConfig, resolvedTypeConfig, argv.name as string);
 
 // start with one bot, it will spawn new bots as needed.
-const context = new BotContext(ws, identityGenerator, characterConfig, isSecondaryTeamCoordinator, isDevelopment, logLevel, 0, numBots, keepBots, noIdle);
+const context = new BotContext(ws, identityGenerator, characterConfig, isSecondaryTeamCoordinator, isDevelopment, logLevel, 0, numBots, keepBots, noIdle, allocator, typeConfig);
 context.startBot();

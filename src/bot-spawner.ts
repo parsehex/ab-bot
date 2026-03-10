@@ -83,7 +83,7 @@ export class BotSpawner {
                         workerData: {
                             websocketUrl: this.context.websocketUrl,
                             flagConfig: this.context.identityGenerator.flagConfig,
-                            typeConfig: this.context.identityGenerator.planeTypeConfig,
+                            typeConfig: this.context.allocator ? this.context.allocator.getNextType(this.context.originalTypeConfig) : this.context.identityGenerator.planeTypeConfig,
                             characterConfig: this.context.characterConfig,
                             isSecondaryTeamCoordinator: this.context.isSecondaryTeamCoordinator,
                             isDevelopment: this.context.isDevelopment,

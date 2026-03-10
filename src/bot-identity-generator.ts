@@ -1,7 +1,7 @@
 import { Calculations } from './bot/calculations';
 import { BotIdentity } from './bot-identity';
 
-let lastAircraftType = 0;
+
 // const flagCodes = ['communist', 'imperial', 'rainbow', 'jolly', 'nl', 'be', 'de', 'fr', 'cz', 'fi',
 //     'hu', 'lv', 'lt', 'md', 'pt', 'ro', 'rs', 'sk', 'ch', 'tr', 'ua', 'gb', 'al', 'at', 'ba', 'by', 'bg',
 //     'hr', 'cy', 'dk', 'ee', 'gr', 'is', 'il', 'it', 'mk', 'no', 'pl', 'ru', 'si', 'es', 'se'];
@@ -51,14 +51,8 @@ export class BotIdentityGenerator {
 
         if (this.planeTypeConfig === 'random') {
             aircraftType = Calculations.getRandomInt(1, 6);
-        } else if (this.planeTypeConfig === 'distribute') {
-            lastAircraftType = lastAircraftType + 1;
-            if (lastAircraftType === 6) {
-                lastAircraftType = 1;
-            }
-            aircraftType = lastAircraftType;
         } else {
-            aircraftType = Number(this.planeTypeConfig);
+            aircraftType = Number(this.planeTypeConfig) || 1;
         }
 
         let lang = localesForFlag[flag];
