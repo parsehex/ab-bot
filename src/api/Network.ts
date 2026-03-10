@@ -27,7 +27,7 @@ export class Network {
     private token: string;
     private lastChat: string;
     private spamWarningTimer = new StopWatch();
-    private chatTimeout; 
+    private chatTimeout;
     private isStopping: boolean;
 
     constructor(private ws: string, private logger: Logger, private tm: TimeoutManager) {
@@ -357,6 +357,8 @@ export class Network {
             case SERVER_PACKETS.SERVER_CUSTOM:
                 if (msg.type === 2) {
                     this.game.onCtfGameOver();
+                } else if (msg.type === 99) {
+                    this.logger.debug("Received SuperUser list", msg);
                 } else {
                     this.logger.warn("Custom server message", msg);
                 }
@@ -367,6 +369,10 @@ export class Network {
                     this.logger.warn("Spam warning received!");
                     this.spamWarningTimer.start();
                 }
+                break;
+
+            case SERVER_PACKETS.ERROR:
+                this.logger.error("Server Error", msg);
                 break;
 
             default:

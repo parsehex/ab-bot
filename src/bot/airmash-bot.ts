@@ -232,7 +232,7 @@ export class AirmashBot {
         try {
             await this.prepareSteering();
         } catch (err) {
-            this.logger.error('error preparing steering', err);
+            this.logger.error('error preparing steering', { error: err, stack: err.stack });
         }
     }
 

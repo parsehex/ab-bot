@@ -68,12 +68,19 @@ export class FfaTargetSelection implements ITargetSelection {
         });
 
         const activeTarget = this.peek();
+        if (!activeTarget) {
+            this.logger.warn("No active target in FFA, using DoNothingTarget");
+            return new DoNothingTarget();
+        }
         activeTarget.isActive = true;
 
         return activeTarget;
     }
 
     private peek(): ITarget {
+        if (this.targets.length === 0) {
+            return null;
+        }
         return this.targets[this.targets.length - 1];
     }
 
@@ -133,8 +140,8 @@ export class FfaTargetSelection implements ITargetSelection {
     }
 
     private logState(): void {
-
-        const info = this.peek().getInfo();
+        const activeTarget = this.peek();
+        const info = activeTarget ? activeTarget.getInfo() : { info: 'Nothing' };
         if (info.info !== this.lastLog) {
             this.logger.info("FFA target: " + info.info);
             this.lastLog = info.info;
