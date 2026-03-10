@@ -24,10 +24,13 @@ export class ProtectTarget extends BaseTarget {
     private innerTarget: ITarget;
     private target: Pos | number;
     private manualInfo: string;
+    private engagementDistance: number;
     private isInvalid = false;
 
-    constructor(private env: IAirmashEnvironment, private logger: Logger, private character: BotCharacter, target: Pos | number, private distance: number) {
+    constructor(private env: IAirmashEnvironment, private logger: Logger, private character: BotCharacter, target: Pos | number, private distance: number, engagementDistance?: number) {
         super();
+
+        this.engagementDistance = engagementDistance;
 
         const now = Date.now();
         if (!target && now - lastAnnounceTime > ANNOUNCE_TIMEOUT && this.env.getGameType() === 1) {
@@ -115,7 +118,8 @@ export class ProtectTarget extends BaseTarget {
             .filter(x => !x.player.isHidden && x.player.isInView);
 
         const enemy = enemies[0];
-        if (enemy && enemy.delta.distance < Math.min(Math.max(this.distance * 3, 300), 1800)) {
+        const engagementDist = this.engagementDistance || Math.min(Math.max(this.distance * 3, 300), 1800);
+        if (enemy && enemy.delta.distance < engagementDist) {
             const newTarget = new OtherPlayerTarget(this.env, this.logger, this.character, [], enemy.player.id);
             if (!newTarget.equals(this.innerTarget)) {
                 log(logPrefix + " has new attack otherplayer target: " + newTarget.getInfo().info);

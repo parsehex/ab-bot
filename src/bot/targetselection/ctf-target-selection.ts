@@ -479,6 +479,36 @@ export class CtfTargetSelection implements ITargetSelection {
                     }
                 }
 
+                // Dynamic carrier protection based on health
+                if (carrier && carrier.health < 0.5) {
+                    const teammateBots = this.env.getPlayers().filter(p => 
+                        p.team === this.myTeam && 
+                        p.id !== carrier.id && 
+                        p.name.endsWith("_") && 
+                        PlayerInfo.isActive(p)
+                    );
+
+                    teammateBots.sort((a, b) => {
+                        const carrierPos = PlayerInfo.getMostReliablePos(carrier);
+                        const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), carrierPos).distance;
+                        const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), carrierPos).distance;
+                        return distA - distB;
+                    });
+
+                    const myIndex = teammateBots.findIndex(p => p.id === this.myId);
+                    if (myIndex === 0) {
+                        // Closest bot: Shield mode
+                        const protectCarrier = new ProtectTarget(this.env, this.logger, this.character, carrier.id, 0, 150);
+                        protectCarrier.setInfo("protect flag carrier (SHIELD)");
+                        return protectCarrier;
+                    } else if (myIndex === 1) {
+                        // Second closest: Tight protection
+                        const protectCarrier = new ProtectTarget(this.env, this.logger, this.character, carrier.id, 20, 300);
+                        protectCarrier.setInfo("protect flag carrier (TIGHT)");
+                        return protectCarrier;
+                    }
+                }
+
                 const protectCarrier = new ProtectTarget(this.env, this.logger, this.character, Number(this.otherFlagInfo.carrierId), PROTECT_PLAYER_DISTANCE);
                 protectCarrier.setInfo("protect flag carrier");
                 return protectCarrier;
