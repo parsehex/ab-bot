@@ -1,4 +1,5 @@
 import pino from 'pino';
+import { isMainThread } from 'worker_threads';
 
 export class Logger {
     private logger: pino.Logger;
@@ -21,7 +22,10 @@ export class Logger {
             };
         }
 
-        this.logger = pino(config, pino.destination());
+        // pino.destination() / SonicBoom can have issues in worker threads
+        // depending on the environment. Defaulting to process.stdout (default)
+        // when in a worker.
+        this.logger = isMainThread ? pino(config, pino.destination()) : pino(config);
     }
 
     levelPlusPlus() {

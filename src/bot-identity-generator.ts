@@ -36,7 +36,7 @@ export class BotIdentityGenerator {
 
     private usedNames = new Set<string>();
 
-    constructor(private flagConfig: string, private planeTypeConfig: string, private nameConfig: string) {
+    constructor(public flagConfig: string, public planeTypeConfig: string, private nameConfig: string) {
     }
 
     generateIdentity(botIndex: number): BotIdentity {

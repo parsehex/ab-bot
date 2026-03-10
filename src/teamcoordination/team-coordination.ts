@@ -11,44 +11,56 @@ import { Calculations } from "../bot/calculations";
 const ELECTION_TIMEOUT_MINUTES = 10;
 const LEADER_CHALLENGABLE_MINUTES = 2.5;
 
+import { BroadcastChannel } from 'worker_threads';
+
 let teamCoordinatorRed: number;
 let teamCoordinatorBlue: number;
 let teamLeaderRedId: number;
 let teamLeaderBlueId: number;
 let slaves: Slave[] = [];
 
-function stopCoordination() {
-    teamCoordinatorBlue = null;
-    teamCoordinatorRed = null;
-}
+// Cross-thread coordination channel
+const coordinationChannel = new BroadcastChannel('team-coordination');
 
-function chooseTeamCoordinator(bot: PlayerInfo) {
-    if (bot.team === 1) {
-        if (!teamCoordinatorBlue) {
-            teamCoordinatorBlue = bot.id;
-        }
-        return teamCoordinatorBlue === bot.id;
-    } else if (bot.team === 2) {
-        if (!teamCoordinatorRed) {
-            teamCoordinatorRed = bot.id;
-        }
-        return teamCoordinatorRed === bot.id;
+coordinationChannel.onmessage = (event) => {
+    const { type, data } = (event as any).data;
+    switch (type) {
+        case 'setCoordinator':
+            if (data.team === 1) teamCoordinatorBlue = data.id;
+            else if (data.team === 2) teamCoordinatorRed = data.id;
+            break;
+        case 'setLeader':
+            if (data.team === 1) teamLeaderBlueId = data.id;
+            else if (data.team === 2) teamLeaderRedId = data.id;
+            break;
+        case 'execAuto':
+            if (data.team === 1 || data.team === 2) execAutoInternal(data.team);
+            break;
+        case 'ctfCommand':
+            slaves.filter(s => s.getTeam() === data.team).forEach(s => s.execCtfCommand(data.playerId, data.command, data.param));
+            break;
+        case 'switchTo':
+            slaves.filter(s => s.getTeam() === data.team).forEach(s => s.switchTo(data.planeType));
+            break;
+        case 'stopCoordination':
+            teamCoordinatorBlue = null;
+            teamCoordinatorRed = null;
+            break;
     }
-    return false;
-}
+};
 
-function teamSlaves(team: number): Slave[] {
-    return slaves.filter(x => x.getTeam() === team && x.isActive());
-}
-
-function execAuto(team: number) {
+function execAutoInternal(team: number) {
     const ts = teamSlaves(team);
     const slavesCount = ts.length;
-    const attackers = slavesCount / 2 + 1; // try to have more attackers than defense
+    const attackers = Math.floor(slavesCount / 2) + 1;
 
     for (let i = 0; i < slavesCount; i++) {
         ts[i].setDefaultRole(i < attackers ? "A" : "D");
     }
+}
+
+function teamSlaves(team: number): Slave[] {
+    return slaves.filter(x => x.getTeam() === team && x.isActive());
 }
 
 export class TeamCoordination {
@@ -102,10 +114,11 @@ export class TeamCoordination {
         }
 
         const wasTeamCoordinator = this.isTeamCoordinatorBot;
-        this.isTeamCoordinatorBot = chooseTeamCoordinator(me);
+        this.isTeamCoordinatorBot = this.chooseTeamCoordinator(me);
         if (!wasTeamCoordinator && this.isTeamCoordinatorBot) {
+            coordinationChannel.postMessage({ type: 'setCoordinator', data: { team: me.team, id: me.id } });
             // reset bots to auto when i'm the new bot coordinator
-            execAuto(me.team);
+            this.execAuto(me.team);
             // also reset bot types to random
             this.selectAircraftTypes(me.team, 'random')
         }
@@ -253,6 +266,8 @@ export class TeamCoordination {
         this.teamLeaderId = teamLeaderId;
 
         const me = this.env.me();
+        coordinationChannel.postMessage({ type: 'setLeader', data: { team: me.team, id: this.teamLeaderId } });
+        
         if (me.team === 1) {
             teamLeaderBlueId = this.teamLeaderId;
         } else {
@@ -260,8 +275,31 @@ export class TeamCoordination {
         }
     }
 
+    private chooseTeamCoordinator(bot: PlayerInfo) {
+        if (bot.team === 1) {
+            if (!teamCoordinatorBlue) {
+                teamCoordinatorBlue = bot.id;
+            }
+            return teamCoordinatorBlue === bot.id;
+        } else if (bot.team === 2) {
+            if (!teamCoordinatorRed) {
+                teamCoordinatorRed = bot.id;
+            }
+            return teamCoordinatorRed === bot.id;
+        }
+        return false;
+    }
+
+    private execAuto(team: number) {
+        coordinationChannel.postMessage({ type: 'execAuto', data: { team } });
+        execAutoInternal(team);
+    }
+
     private onGameOver() {
-        stopCoordination();
+        teamCoordinatorBlue = null;
+        teamCoordinatorRed = null;
+        coordinationChannel.postMessage({ type: 'stopCoordination' });
+
         this.isTeamCoordinatorBot = false;
         slaves.forEach(x => {
             if (x.isActive()) {
@@ -274,7 +312,9 @@ export class TeamCoordination {
     stop() {
         if (this.isTeamCoordinatorBot) {
             // will be noticed by other bots, so the first one will take over leadership
-            stopCoordination();
+            teamCoordinatorBlue = null;
+            teamCoordinatorRed = null;
+            coordinationChannel.postMessage({ type: 'stopCoordination' });
         }
     }
 
@@ -486,7 +526,7 @@ export class TeamCoordination {
 
         if (command === 'auto') {
             this.currentTeamMode = 'auto';
-            execAuto(me.team);
+            this.execAuto(me.team);
         } else if (command === 'capture') {
             this.currentTeamMode = 'capture';
             const mySlaves = teamSlaves(me.team);
@@ -527,6 +567,7 @@ export class TeamCoordination {
                 }
             });
         } else {
+            coordinationChannel.postMessage({ type: 'ctfCommand', data: { team: me.team, playerId: speaker.id, command, param } });
             teamSlaves(me.team).forEach(x => x.execCtfCommand(speaker.id, command, param));
         }
     }
@@ -576,6 +617,7 @@ export class TeamCoordination {
                     planeType = Calculations.getRandomInt(1, 6);
                 }
             }
+            coordinationChannel.postMessage({ type: 'switchTo', data: { team, planeType } });
             s.switchTo(planeType);
         });
     }

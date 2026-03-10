@@ -22,12 +22,12 @@ export class BotContext {
     private spawner: BotSpawner;
 
     constructor(
-        private websocketUrl: string,
-        private identityGenerator: BotIdentityGenerator,
-        private characterConfig: string,
-        private isSecondaryTeamCoordinator: boolean,
-        private isDevelopment: boolean,
-        private logLevel: string,
+        public websocketUrl: string,
+        public identityGenerator: BotIdentityGenerator,
+        public characterConfig: string,
+        public isSecondaryTeamCoordinator: boolean,
+        public isDevelopment: boolean,
+        public logLevel: string,
         public botIndex: number,
         numBots: number = null,
         keepBots: boolean = false,
