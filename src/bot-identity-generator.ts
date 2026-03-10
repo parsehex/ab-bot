@@ -49,7 +49,7 @@ export class BotIdentityGenerator {
             flag = this.flagConfig;
         }
 
-        if (this.planeTypeConfig === 'random') {
+        if (this.planeTypeConfig === 'random' || this.planeTypeConfig === 'distribute' || this.planeTypeConfig === 'd') {
             aircraftType = Calculations.getRandomInt(1, 6);
         } else {
             aircraftType = Number(this.planeTypeConfig) || 1;

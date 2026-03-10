@@ -119,8 +119,6 @@ export class TeamCoordination {
             coordinationChannel.postMessage({ type: 'setCoordinator', data: { team: me.team, id: me.id } });
             // reset bots to auto when i'm the new bot coordinator
             this.execAuto(me.team);
-            // also reset bot types to random
-            this.selectAircraftTypes(me.team, 'random')
         }
 
         this.gameIsAboutToStart = false;
@@ -596,29 +594,24 @@ export class TeamCoordination {
     }
 
     private selectAircraftTypes(team: number, typeSpec: string) {
-        let type = 0;
-        let goliCount = 0;
-        teamSlaves(team).forEach(s => {
-            let planeType = Number(typeSpec);
-            if (!planeType) {
-                if (typeSpec === 'distribute' || typeSpec === 'd') {
-                    do {
-                        type++;
-                        if (type > 5) {
-                            type = 1;
-                        }
-                    } while (type === 2 && goliCount >= 2);
-                    planeType = type;
-                    if (planeType === 2) {
-                        goliCount++;
-                    }
-                }
-                else {
-                    planeType = Calculations.getRandomInt(1, 6);
-                }
-            }
-            coordinationChannel.postMessage({ type: 'switchTo', data: { team, planeType } });
-            s.switchTo(planeType);
-        });
+        if (typeSpec === 'random' || typeSpec === 'distribute' || typeSpec === 'd') {
+            // When random or distribute is requested, we don't want to force every bot to the same type.
+            // Instead, we let each bot decide for itself or stay as it is if it's already spawned.
+            // This prevents the "everyone switches to the same random ship" bug.
+            teamSlaves(team).forEach(s => {
+                const planeType = Calculations.getRandomInt(1, 6);
+                coordinationChannel.postMessage({ type: 'switchTo', data: { team, planeType } });
+                s.switchTo(planeType);
+            });
+            return;
+        }
+
+        let planeType = Number(typeSpec);
+        if (planeType && planeType >= 1 && planeType <= 5) {
+            teamSlaves(team).forEach(s => {
+                coordinationChannel.postMessage({ type: 'switchTo', data: { team, planeType } });
+                s.switchTo(planeType);
+            });
+        }
     }
 }

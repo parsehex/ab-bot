@@ -127,16 +127,19 @@ export class CtfTargetSelection implements ITargetSelection {
 
         this.logState();
 
-        this.targets.forEach(element => {
-            element.isActive = false;
-        });
-
         const activeTarget = this.peek();
+        if (!activeTarget) {
+            this.logger.warn("No active target in CTF, using DoNothingTarget");
+            return new DoNothingTarget();
+        }
         activeTarget.isActive = true;
         return activeTarget;
     }
 
     private peek(): ITarget {
+        if (this.targets.length === 0) {
+            return null;
+        }
         return this.targets[this.targets.length - 1];
     }
 
@@ -381,32 +384,82 @@ export class CtfTargetSelection implements ITargetSelection {
                 }
             }
 
-            // Low health handoff
             const meInfo = this.env.me();
-            if (meInfo.health < 0.25) {
-                const teammates = this.env.getPlayers().filter(p => p.team === this.myTeam && p.id !== this.myId && PlayerInfo.isActive(p) && p.health > 0.6);
+            const myPos = meInfo.pos;
 
+            // Shield handoff
+            if (meInfo.hasShield) {
+                const teammates = this.env.getPlayers().filter(p => p.team === this.myTeam && p.id !== this.myId && PlayerInfo.isActive(p));
                 if (teammates.length > 0) {
-                    const myPos = meInfo.pos;
                     teammates.sort((a, b) => {
-                        const aIsNonBot = !a.name.endsWith("_");
-                        const bIsNonBot = !b.name.endsWith("_");
-
-                        if (aIsNonBot && !bIsNonBot) return -1;
-                        if (!aIsNonBot && bIsNonBot) return 1;
-
                         const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
                         const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
                         return distA - distB;
                     });
-
-                    const closestHealthyTeammate = teammates[0];
-                    const distToTeammate = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestHealthyTeammate), myPos).distance;
-                    if (distToTeammate < 40) {
-                        this.env.sendTeam(`I'm dying, take the flag ${closestHealthyTeammate.name}!`, false);
-                        const target = new HandOverFlagTarget(this.env, this.logger, closestHealthyTeammate.id, true);
+                    const closestTeammate = teammates[0];
+                    if (Calculations.getDelta(PlayerInfo.getMostReliablePos(closestTeammate), myPos).distance < 40) {
+                        const target = new HandOverFlagTarget(this.env, this.logger, closestTeammate.id, true);
                         target.isSticky = true;
                         return target;
+                    }
+                }
+            }
+
+            // Low health handoff
+            let lowHealthThreshold = 0.25;
+            let checkSafe = false;
+            if (meInfo.type === 2) { // Goli
+                lowHealthThreshold = 1 / 3;
+                checkSafe = true;
+            }
+
+            if (meInfo.health <= lowHealthThreshold) {
+                let shouldPass = true;
+                if (checkSafe) {
+                    // Check if enemies are nearby
+                    const enemies = this.env.getPlayers().filter(p => p.team !== this.myTeam && PlayerInfo.isActive(p) && !p.isHidden);
+                    if (enemies.length > 0) {
+                        enemies.sort((a, b) => {
+                            const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
+                            const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                            return distA - distB;
+                        });
+
+                        const closestEnemyDist = Calculations.getDelta(PlayerInfo.getMostReliablePos(enemies[0]), myPos).distance;
+                        if (closestEnemyDist > 800) {
+                            shouldPass = false;
+                        }
+                    } else {
+                        shouldPass = false;
+                    }
+                }
+
+                if (shouldPass) {
+                    const teammates = this.env.getPlayers().filter(p => p.team === this.myTeam && p.id !== this.myId && PlayerInfo.isActive(p) && p.health > 0.6);
+
+                    if (teammates.length > 0) {
+                        teammates.sort((a, b) => {
+                            const aIsNonBot = !a.name.endsWith("_");
+                            const bIsNonBot = !b.name.endsWith("_");
+
+                            if (aIsNonBot && !bIsNonBot) return -1;
+                            if (!aIsNonBot && bIsNonBot) return 1;
+
+                            const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
+                            const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                            return distA - distB;
+                        });
+
+                        const closestHealthyTeammate = teammates[0];
+                        const distToTeammate = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestHealthyTeammate), myPos).distance;
+                        if (distToTeammate < 40) {
+                            if (meInfo.health < 0.25) {
+                                this.env.sendTeam(`I'm dying, take the flag ${closestHealthyTeammate.name}!`, false);
+                            }
+                            const target = new HandOverFlagTarget(this.env, this.logger, closestHealthyTeammate.id, true);
+                            target.isSticky = true;
+                            return target;
+                        }
                     }
                 }
             }
