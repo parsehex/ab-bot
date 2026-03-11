@@ -16,10 +16,8 @@ function gridContainerFromMountainData(path: string) {
 
     initialize();
 
-    const scaleDownX = width / 33000; // scale relative to airmash map
-    const scaleDownY = height / 16600; 
-    const scaleUpX = 33000 / width; 
-    const scaleUpY = 16600 / height;
+    const scaleDown = width / 33000; // scale relative to airmash map
+    const scaleUp = 33000 / width; // scale relative to airmash map
     const transX = width / 2; // translation: airmash has it's center at 0,0
     const transY = height / 2;
 
@@ -27,8 +25,7 @@ function gridContainerFromMountainData(path: string) {
         width,
         height,
         grids,
-        scaleUpX,
-        scaleUpY,
+        scaleUp,
         posToGridPos,
         posToAirmashPos,
     };
@@ -47,25 +44,17 @@ function gridContainerFromMountainData(path: string) {
     }
 
     function posToGridPos(pos: Pos): Pos {
-        let x = Math.round(pos.x * scaleDownX + transX);
-        let y = Math.round(pos.y * scaleDownY + transY);
-
-        // Clamp to grid boundaries
-        x = Math.max(0, Math.min(width - 1, x));
-        y = Math.max(0, Math.min(height - 1, y));
-
-        return new Pos({ x, y });
+        return new Pos({
+            x: Math.round(pos.x * scaleDown + transX),
+            y: Math.round(pos.y * scaleDown + transY)
+        });
     }
 
     function posToAirmashPos(pos: { x: number; y: number }): Pos {
-        let x = (pos.x - transX) * scaleUpX;
-        let y = (pos.y - transY) * scaleUpY;
-
-        // Clamp to server boundaries
-        x = Math.max(-16384, Math.min(16383, x));
-        y = Math.max(-8192, Math.min(8191, y));
-
-        return new Pos({ x, y });
+        return new Pos({
+            x: (pos.x - transX) * scaleUp,
+            y: (pos.y - transY) * scaleUp
+        });
     }
 
     function createGrid(type: number, mountains: any): number[][] {
