@@ -218,14 +218,14 @@ export class TeamCoordination {
             } else if (otherScore >= 2) {
                 defendersCount = 3;
             }
-            
+
             // Ensure at least 1 attacker if possible
             if (defendersCount >= mySlaves.length) {
                 defendersCount = Math.max(1, mySlaves.length - 1);
             }
-            
+
             cappersCount = mySlaves.length - defendersCount;
-            
+
         } else if (this.currentTeamMode === 'defend') {
             cappersCount = 1;
             if (otherScore - myScore >= 2) {
@@ -236,14 +236,14 @@ export class TeamCoordination {
                     cappersCount = 2; // We are down by 1 and someone grabbed flag, send another capper!
                 }
             }
-            
+
             // Ensure at least 1 defender if possible
             if (cappersCount >= mySlaves.length) {
                 cappersCount = Math.max(0, mySlaves.length - 1);
             }
-            
+
             defendersCount = mySlaves.length - cappersCount;
-            
+
         } else {
             // 'auto'
             cappersCount = Math.floor(mySlaves.length / 2) + 1; // Try to have more attackers
@@ -265,7 +265,7 @@ export class TeamCoordination {
 
         const me = this.env.me();
         coordinationChannel.postMessage({ type: 'setLeader', data: { team: me.team, id: this.teamLeaderId } });
-        
+
         if (me.team === 1) {
             teamLeaderBlueId = this.teamLeaderId;
         } else {
@@ -528,7 +528,7 @@ export class TeamCoordination {
         } else if (command === 'capture') {
             this.currentTeamMode = 'capture';
             const mySlaves = teamSlaves(me.team);
-            // We still forward the capture command to reset targets for manual overrides, 
+            // We still forward the capture command to reset targets for manual overrides,
             // but the role balancer in updateTeamRoles will adjust the actual A/D roles on the fly.
             mySlaves.forEach(bot => bot.execCtfCommand(speaker.id, 'capture', ''));
         } else if (command === 'defend') {
@@ -594,24 +594,29 @@ export class TeamCoordination {
     }
 
     private selectAircraftTypes(team: number, typeSpec: string) {
-        if (typeSpec === 'random' || typeSpec === 'distribute' || typeSpec === 'd') {
-            // When random or distribute is requested, we don't want to force every bot to the same type.
-            // Instead, we let each bot decide for itself or stay as it is if it's already spawned.
-            // This prevents the "everyone switches to the same random ship" bug.
-            teamSlaves(team).forEach(s => {
-                const planeType = Calculations.getRandomInt(1, 6);
-                coordinationChannel.postMessage({ type: 'switchTo', data: { team, planeType } });
-                s.switchTo(planeType);
-            });
-            return;
-        }
-
-        let planeType = Number(typeSpec);
-        if (planeType && planeType >= 1 && planeType <= 5) {
-            teamSlaves(team).forEach(s => {
-                coordinationChannel.postMessage({ type: 'switchTo', data: { team, planeType } });
-                s.switchTo(planeType);
-            });
-        }
+        let type = 0;
+        let goliCount = 0;
+        teamSlaves(team).forEach(s => {
+            let planeType = Number(typeSpec);
+            if (!planeType) {
+                if (typeSpec === 'distribute' || typeSpec === 'd') {
+                    do {
+                        type++;
+                        if (type > 5) {
+                            type = 1;
+                        }
+                    } while (type === 2 && goliCount >= 2);
+                    planeType = type;
+                    if (planeType === 2) {
+                        goliCount++;
+                    }
+                }
+                else {
+                    planeType = Calculations.getRandomInt(1, 6);
+                }
+            }
+            coordinationChannel.postMessage({ type: 'switchTo', data: { team, planeType } });
+            s.switchTo(planeType);
+        });
     }
 }
