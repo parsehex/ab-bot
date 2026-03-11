@@ -234,13 +234,13 @@ export class CtfTargetSelection implements ITargetSelection {
                 const goliaths = this.env.getPlayers().filter(p => p.team === this.myTeam && p.type === 2 && p.id !== this.myId && PlayerInfo.isActive(p));
                 if (goliaths.length > 0) {
                     goliaths.sort((a, b) => {
-                        const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), this.env.me().pos).distance;
-                        const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), this.env.me().pos).distance;
+                        const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), this.env.me().pos);
+                        const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), this.env.me().pos);
                         return distA - distB;
                     });
 
                     const closestGoliath = goliaths[0];
-                    const distToGoli = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestGoliath), this.env.me().pos).distance;
+                    const distToGoli = this.getDistance(PlayerInfo.getMostReliablePos(closestGoliath), this.env.me().pos);
 
                     if (distToGoli < 400) {
                         const target = new HandOverFlagTarget(this.env, this.logger, closestGoliath.id, true);
@@ -278,13 +278,13 @@ export class CtfTargetSelection implements ITargetSelection {
                         const scoreB = getScore(b);
                         if (scoreA !== scoreB) return scoreA - scoreB;
 
-                        const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
-                        const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                        const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), myPos);
+                        const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), myPos);
                         return distA - distB;
                     });
 
                     const bestReceiver = receivers[0];
-                    const distToReceiver = Calculations.getDelta(PlayerInfo.getMostReliablePos(bestReceiver), myPos).distance;
+                    const distToReceiver = this.getDistance(PlayerInfo.getMostReliablePos(bestReceiver), myPos);
 
                     if (distToReceiver < 400) {
                         // Check if enemies are nearby
@@ -293,12 +293,12 @@ export class CtfTargetSelection implements ITargetSelection {
 
                         if (enemies.length > 0) {
                             enemies.sort((a, b) => {
-                                const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
-                                const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                                const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), myPos);
+                                const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), myPos);
                                 return distA - distB;
                             });
 
-                            const closestEnemyDist = Calculations.getDelta(PlayerInfo.getMostReliablePos(enemies[0]), myPos).distance;
+                            const closestEnemyDist = this.getDistance(PlayerInfo.getMostReliablePos(enemies[0]), myPos);
                             if (closestEnemyDist < 800) {
                                 isSafe = false;
                             }
@@ -356,14 +356,14 @@ export class CtfTargetSelection implements ITargetSelection {
                         // Is anyone standing on me? (within < 100 units)
                         const teammates = this.env.getPlayers().filter(p => p.team === this.myTeam && p.id !== this.myId && PlayerInfo.isActive(p));
                         teammates.sort((a, b) => {
-                            const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
-                            const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                            const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), myPos);
+                            const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), myPos);
                             return distA - distB;
                         });
 
                         if (teammates.length > 0) {
                             const closestTeammate = teammates[0];
-                            const distToTeammate = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestTeammate), myPos).distance;
+                            const distToTeammate = this.getDistance(PlayerInfo.getMostReliablePos(closestTeammate), myPos);
                             if (distToTeammate < 100) {
                                 const target = new HandOverFlagTarget(this.env, this.logger, closestTeammate.id, true);
                                 target.isSticky = true;
@@ -392,12 +392,12 @@ export class CtfTargetSelection implements ITargetSelection {
                 const teammates = this.env.getPlayers().filter(p => p.team === this.myTeam && p.id !== this.myId && PlayerInfo.isActive(p));
                 if (teammates.length > 0) {
                     teammates.sort((a, b) => {
-                        const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
-                        const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                        const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), myPos);
+                        const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), myPos);
                         return distA - distB;
                     });
                     const closestTeammate = teammates[0];
-                    if (Calculations.getDelta(PlayerInfo.getMostReliablePos(closestTeammate), myPos).distance < 40) {
+                    if (this.getDistance(PlayerInfo.getMostReliablePos(closestTeammate), myPos) < 40) {
                         const target = new HandOverFlagTarget(this.env, this.logger, closestTeammate.id, true);
                         target.isSticky = true;
                         return target;
@@ -420,12 +420,12 @@ export class CtfTargetSelection implements ITargetSelection {
                     const enemies = this.env.getPlayers().filter(p => p.team !== this.myTeam && PlayerInfo.isActive(p) && !p.isHidden);
                     if (enemies.length > 0) {
                         enemies.sort((a, b) => {
-                            const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
-                            const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                            const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), myPos);
+                            const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), myPos);
                             return distA - distB;
                         });
 
-                        const closestEnemyDist = Calculations.getDelta(PlayerInfo.getMostReliablePos(enemies[0]), myPos).distance;
+                        const closestEnemyDist = this.getDistance(PlayerInfo.getMostReliablePos(enemies[0]), myPos);
                         if (closestEnemyDist > 800) {
                             shouldPass = false;
                         }
@@ -445,13 +445,13 @@ export class CtfTargetSelection implements ITargetSelection {
                             if (aIsNonBot && !bIsNonBot) return -1;
                             if (!aIsNonBot && bIsNonBot) return 1;
 
-                            const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), myPos).distance;
-                            const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), myPos).distance;
+                            const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), myPos);
+                            const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), myPos);
                             return distA - distB;
                         });
 
                         const closestHealthyTeammate = teammates[0];
-                        const distToTeammate = Calculations.getDelta(PlayerInfo.getMostReliablePos(closestHealthyTeammate), myPos).distance;
+                        const distToTeammate = this.getDistance(PlayerInfo.getMostReliablePos(closestHealthyTeammate), myPos);
                         if (distToTeammate < 40) {
                             if (meInfo.health < 0.25) {
                                 this.env.sendTeam(`I'm dying, take the flag ${closestHealthyTeammate.name}!`, false);
@@ -473,8 +473,8 @@ export class CtfTargetSelection implements ITargetSelection {
             if (carrier) {
                 const defenders = this.env.getPlayers().filter(p => p.team === this.myTeam && PlayerInfo.isActive(p));
                 defenders.sort((a,b) => {
-                    const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), PlayerInfo.getMostReliablePos(carrier)).distance;
-                    const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), PlayerInfo.getMostReliablePos(carrier)).distance;
+                    const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), PlayerInfo.getMostReliablePos(carrier));
+                    const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), PlayerInfo.getMostReliablePos(carrier));
                     return distA - distB;
                 });
 
@@ -519,8 +519,8 @@ export class CtfTargetSelection implements ITargetSelection {
                 if (this.env.me().type === 2 && carrier && carrier.type !== 2) {
                     const goliaths = this.env.getPlayers().filter(p => p.team === this.myTeam && p.type === 2 && p.id !== carrier.id && PlayerInfo.isActive(p));
                     goliaths.sort((a,b) => {
-                        const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), PlayerInfo.getMostReliablePos(carrier)).distance;
-                        const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), PlayerInfo.getMostReliablePos(carrier)).distance;
+                        const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), PlayerInfo.getMostReliablePos(carrier));
+                        const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), PlayerInfo.getMostReliablePos(carrier));
                         return distA - distB;
                     });
 
@@ -534,17 +534,17 @@ export class CtfTargetSelection implements ITargetSelection {
 
                 // Dynamic carrier protection based on health
                 if (carrier && carrier.health < 0.5) {
-                    const teammateBots = this.env.getPlayers().filter(p => 
-                        p.team === this.myTeam && 
-                        p.id !== carrier.id && 
-                        p.name.endsWith("_") && 
+                    const teammateBots = this.env.getPlayers().filter(p =>
+                        p.team === this.myTeam &&
+                        p.id !== carrier.id &&
+                        p.name.endsWith("_") &&
                         PlayerInfo.isActive(p)
                     );
 
                     teammateBots.sort((a, b) => {
                         const carrierPos = PlayerInfo.getMostReliablePos(carrier);
-                        const distA = Calculations.getDelta(PlayerInfo.getMostReliablePos(a), carrierPos).distance;
-                        const distB = Calculations.getDelta(PlayerInfo.getMostReliablePos(b), carrierPos).distance;
+                        const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), carrierPos);
+                        const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), carrierPos);
                         return distA - distB;
                     });
 
@@ -577,6 +577,15 @@ export class CtfTargetSelection implements ITargetSelection {
         }
     }
 
+
+    private getDistance(pos1: Pos, pos2: Pos): number {
+        const delta = Calculations.getDelta(pos1, pos2);
+        if (delta) {
+            return delta.distance;
+        }
+        return 1000000;
+    }
+
     private updateFlagInfo() {
         const me = this.env.me();
 
@@ -594,10 +603,8 @@ export class CtfTargetSelection implements ITargetSelection {
         this.defaultMyFlagPos = this.myTeam === 1 ? blueFlagPositions.defaultPos : redFlagPositions.defaultPos;
         this.defaultOtherFlagPos = this.myTeam === 1 ? redFlagPositions.defaultPos : blueFlagPositions.defaultPos;
 
-        if (this.myFlagInfo.pos && this.otherFlagInfo.pos && me.pos) {
-            this.distanceToMyFlag = Calculations.getDelta(this.myFlagInfo.pos, me.pos).distance;
-            this.distanceToOtherFlag = Calculations.getDelta(this.otherFlagInfo.pos, me.pos).distance;
-        }
+        this.distanceToMyFlag = this.getDistance(this.myFlagInfo.pos, me.pos);
+        this.distanceToOtherFlag = this.getDistance(this.otherFlagInfo.pos, me.pos);
 
         if (!this.myRole || this.isAutoMode) {
             this.selectRole();
@@ -670,7 +677,7 @@ export class CtfTargetSelection implements ITargetSelection {
                 }
             }
             // my flag displaced?
-        } else if (Calculations.getDelta(this.defaultMyFlagPos, this.myFlagInfo.pos).distance > 100) {
+        } else if (this.getDistance(this.defaultMyFlagPos, this.myFlagInfo.pos) > 100) {
             const deltaToFlag = Calculations.getDelta(this.myFlagInfo.pos, this.env.me().pos);
             if (deltaToFlag) {
                 currentFlagStates.push({
@@ -729,7 +736,7 @@ export class CtfTargetSelection implements ITargetSelection {
                     return;
                 }
                 if (FlagHelpers.isCarryingFlag(this.env)) {
-                    const distance = Calculations.getDelta(me.pos, PlayerInfo.getMostReliablePos(player)).distance;
+                    const distance = this.getDistance(me.pos, PlayerInfo.getMostReliablePos(player));
                     if (distance > TOO_FAR_AWAY_FOR_POOPING_FLAG) {
                         this.env.sendTeam("Too far away!", false);
                     } else {
