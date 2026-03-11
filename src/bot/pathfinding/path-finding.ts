@@ -16,6 +16,12 @@ function gridContainerFromMountainData(path: string) {
 
     initialize();
 
+    // The number here doesn't precisely match the true width of airmash's map.
+    // However via testing, the map's real width does not work.
+    // As a result the bots moved in an inaccurate way that seemed possibly off by the amount we adjusted by.
+    // This leads me to believe there's a reason for the discrepancy.
+    // Given that the number seems rounded, some tuning may be helpful, but this will require plenty of thought.
+
     const scaleDown = width / 33000; // scale relative to airmash map
     const scaleUp = 33000 / width; // scale relative to airmash map
     const transX = width / 2; // translation: airmash has it's center at 0,0
