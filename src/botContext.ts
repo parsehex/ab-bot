@@ -8,6 +8,7 @@ import { StopWatch } from "./helper/timer";
 import { BotIdentityGenerator } from "./bot-identity-generator";
 import { BotSpawner } from "./bot-spawner";
 import { AircraftTypeAllocator } from "./helper/aircraft-type-allocator";
+import { BotIdentity } from "./bot-identity";
 
 const MAX_RESTART_TRIES = 3;
 
@@ -21,6 +22,7 @@ export class BotContext {
     private lastRestartTimer = new StopWatch();
     private restartCount = 0;
     private spawner: BotSpawner;
+    private identity: BotIdentity;
 
     constructor(
         public websocketUrl: string,
@@ -34,7 +36,10 @@ export class BotContext {
         keepBots: boolean = false,
         public noIdle = false,
         public allocator: AircraftTypeAllocator = null,
-        public originalTypeConfig: string = null) {
+        public originalTypeConfig: string = null,
+        predefinedIdentity: BotIdentity = null) {
+
+        this.identity = predefinedIdentity;
 
         if (botIndex === 0) {
             // this is the first bot, which should manage the number of bots
@@ -49,7 +54,9 @@ export class BotContext {
     killBot() {
         this.env.stop();
         this.tm.clearAll();
-        this.bot.stop();
+        if (this.bot) {
+            this.bot.stop();
+        }
     }
 
     rebootBot() {
@@ -73,9 +80,16 @@ export class BotContext {
     }
 
     private startBotInner() {
-        const identity = this.identityGenerator.generateIdentity(this.botIndex);
+        if (!this.identity) {
+            this.identity = this.identityGenerator.generateIdentity(this.botIndex);
+        }
+        
+        const identity = this.identity;
         this.character = BotCharacter[this.characterConfig] || BotCharacter.get(identity.aircraftType);
-        this.logger = new Logger(this.botIndex, identity.name, this.isDevelopment, this.logLevel);
+        
+        if (!this.logger) {
+            this.logger = new Logger(this.botIndex, identity.name, this.isDevelopment, this.logLevel);
+        }
 
         this.logger.info('Starting:', {
             type: identity.aircraftType,

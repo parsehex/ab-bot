@@ -11,23 +11,21 @@ if (!parentPort) {
 try {
     const {
         websocketUrl,
-        flagConfig,
-        typeConfig,
         characterConfig,
         isSecondaryTeamCoordinator,
         isDevelopment,
         logLevel,
         botIndex,
-        noIdle
+        noIdle,
+        predefinedIdentity
     } = workerData;
 
     // Load env if needed, although mostly passed via workerData
     dotenv.config({ path: path.resolve(__dirname, '../../.env.bots') });
 
-    const identityGenerator = new BotIdentityGenerator(flagConfig, typeConfig, undefined);
     const context = new BotContext(
         websocketUrl,
-        identityGenerator,
+        null, // No identity generator needed in worker
         characterConfig,
         isSecondaryTeamCoordinator,
         isDevelopment,
@@ -35,7 +33,10 @@ try {
         botIndex,
         null,
         false,
-        noIdle
+        noIdle,
+        null,
+        null,
+        predefinedIdentity
     );
 
     context.startBot();

@@ -79,17 +79,18 @@ export class BotSpawner {
                     botIndex++;
                     
                     const currentBotIndex = botIndex;
+                    const predefinedIdentity = this.context.identityGenerator.generateIdentity(currentBotIndex);
+
                     const worker = new Worker(path.resolve(__dirname, './worker.js'), {
                         workerData: {
                             websocketUrl: this.context.websocketUrl,
-                            flagConfig: this.context.identityGenerator.flagConfig,
-                            typeConfig: this.context.allocator ? this.context.allocator.getNextType(this.context.originalTypeConfig) : this.context.identityGenerator.planeTypeConfig,
                             characterConfig: this.context.characterConfig,
                             isSecondaryTeamCoordinator: this.context.isSecondaryTeamCoordinator,
                             isDevelopment: this.context.isDevelopment,
                             logLevel: this.context.logLevel,
                             botIndex: currentBotIndex,
-                            noIdle: this.context.noIdle
+                            noIdle: this.context.noIdle,
+                            predefinedIdentity
                         }
                     });
 
