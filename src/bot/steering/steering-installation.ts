@@ -111,13 +111,21 @@ export class SteeringInstallation {
     private compress(instructions: SteeringInstruction[]): SteeringInstruction {
         const result = new SteeringInstruction();
 
+        // default to no movement/actions when there are no instructions
+        result.targetSpeed = 0;
+        result.rotDelta = 0;
+        result.fire = false;
+        result.boost = false;
+        result.fart = false;
+        result.stealth = false;
+
         for (const instr of instructions) {
             result.targetSpeed = !isNullOrUndefined(instr.targetSpeed) ? instr.targetSpeed : result.targetSpeed;
             result.rotDelta = !isNullOrUndefined(instr.rotDelta) ? instr.rotDelta : result.rotDelta;
-            result.fire = instr.fire || instr.fire;
-            result.boost = result.boost || instr.boost;
-            result.fart = instr.fart || instr.fart;
-            result.stealth = instr.stealth || instr.stealth;
+            result.fire = !isNullOrUndefined(instr.fire) ? instr.fire : result.fire;
+            result.boost = result.boost || !!instr.boost;
+            result.fart = result.fart || !!instr.fart;
+            result.stealth = result.stealth || !!instr.stealth;
         }
 
         return result;
