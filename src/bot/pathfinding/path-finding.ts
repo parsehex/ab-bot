@@ -83,6 +83,16 @@ function gridContainerFromMountainData(path: string) {
             grid[m.y][m.x] = Math.round(m.v / 10);
         }
 
+        // Set map boundaries as obstacles to prevent bots from getting stuck on edges
+        for (let x = 0; x < width; x++) {
+            grid[0][x] = Math.max(grid[0][x], 26); // top
+            grid[height - 1][x] = Math.max(grid[height - 1][x], 26); // bottom
+        }
+        for (let y = 0; y < height; y++) {
+            grid[y][0] = Math.max(grid[y][0], 26); // left
+            grid[y][width - 1] = Math.max(grid[y][width - 1], 26); // right
+        }
+
         return grid;
     }
 }
