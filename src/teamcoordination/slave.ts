@@ -43,6 +43,7 @@ export class Slave {
         }
         const dieCast = Calculations.getRandomInt(1, 3);
         this.myDefaultRole = dieCast === 1 ? "A" : "D";
+        return this.myDefaultRole;
     }
 
     setDefaultRole(value: string) {
