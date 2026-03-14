@@ -34,8 +34,7 @@ const logLevel = process.env.BOTS_LOG_LEVEL || argv.level as string || "warn";
 const noIdle = !!argv.noIdle || process.env.BOTS_NO_IDLE === 'true';
 
 const allocator = new AircraftTypeAllocator(ws);
-const resolvedTypeConfig = allocator.getNextType(typeConfig);
-const identityGenerator = new BotIdentityGenerator(flagConfig, resolvedTypeConfig, argv.name as string);
+const identityGenerator = new BotIdentityGenerator(flagConfig, typeConfig, argv.name as string, allocator);
 
 // start with one bot, it will spawn new bots as needed.
 const context = new BotContext(ws, identityGenerator, characterConfig, isSecondaryTeamCoordinator, isDevelopment, logLevel, 0, numBots, keepBots, noIdle, allocator, typeConfig);

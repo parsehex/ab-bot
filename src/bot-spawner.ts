@@ -90,7 +90,9 @@ export class BotSpawner {
                             logLevel: this.context.logLevel,
                             botIndex: currentBotIndex,
                             noIdle: this.context.noIdle,
-                            predefinedIdentity
+                            predefinedIdentity,
+                            flagConfig: this.context.identityGenerator.flagConfig,
+                            typeConfig: this.context.originalTypeConfig
                         }
                     });
 

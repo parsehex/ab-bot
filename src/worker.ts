@@ -3,6 +3,7 @@ import { BotContext } from './botContext';
 import { BotIdentityGenerator } from './bot-identity-generator';
 import path from 'path';
 import dotenv from 'dotenv';
+import { AircraftTypeAllocator } from './helper/aircraft-type-allocator';
 
 if (!parentPort) {
     throw new Error('This file must be run as a worker thread');
@@ -17,15 +18,20 @@ try {
         logLevel,
         botIndex,
         noIdle,
-        predefinedIdentity
+        predefinedIdentity,
+        flagConfig,
+        typeConfig
     } = workerData;
 
     // Load env if needed, although mostly passed via workerData
     dotenv.config({ path: path.resolve(__dirname, '../../.env.bots') });
 
+    const allocator = new AircraftTypeAllocator(websocketUrl);
+    const identityGenerator = new BotIdentityGenerator(flagConfig, typeConfig, null, allocator);
+
     const context = new BotContext(
         websocketUrl,
-        null, // No identity generator needed in worker
+        identityGenerator,
         characterConfig,
         isSecondaryTeamCoordinator,
         isDevelopment,
@@ -34,8 +40,8 @@ try {
         null,
         false,
         noIdle,
-        null,
-        null,
+        allocator,
+        typeConfig,
         predefinedIdentity
     );
 

@@ -1,5 +1,6 @@
 import { Calculations } from './bot/calculations';
 import { BotIdentity } from './bot-identity';
+import { AircraftTypeAllocator } from './helper/aircraft-type-allocator';
 
 
 // const flagCodes = ['communist', 'imperial', 'rainbow', 'jolly', 'nl', 'be', 'de', 'fr', 'cz', 'fi',
@@ -36,21 +37,26 @@ export class BotIdentityGenerator {
 
     private usedNames = new Set<string>();
 
-    constructor(public flagConfig: string, public planeTypeConfig: string, private nameConfig: string) {
+    constructor(public flagConfig: string,
+        public planeTypeConfig: string,
+        private nameConfig: string,
+        private allocator?: AircraftTypeAllocator) {
     }
 
     generateIdentity(botIndex: number): BotIdentity {
         let aircraftType: number;
         let flag: string;
-      
+
         if (this.flagConfig === 'random') {
             flag = flagCodes[Calculations.getRandomInt(0, flagCodes.length)];
         } else {
             flag = this.flagConfig;
         }
 
-        if (this.planeTypeConfig === 'random' || this.planeTypeConfig === 'distribute' || this.planeTypeConfig === 'd') {
+        if (this.planeTypeConfig === 'random') {
             aircraftType = Calculations.getRandomInt(1, 6);
+        } else if ((this.planeTypeConfig === 'distribute' || this.planeTypeConfig === 'd') && this.allocator) {
+            aircraftType = Number(this.allocator.getNextType(this.planeTypeConfig));
         } else {
             aircraftType = Number(this.planeTypeConfig) || 1;
         }
@@ -61,7 +67,7 @@ export class BotIdentityGenerator {
         }
 
         const x = require('faker/locale/' + lang);
-        
+
         let name: string;
         if (this.nameConfig) {
             name = botIndex === 0 ? this.nameConfig : `${this.nameConfig}-${botIndex}`;
