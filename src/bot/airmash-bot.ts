@@ -33,7 +33,7 @@ export class AirmashBot {
     private teamCoordination: TeamCoordination; // for coordinating the ctf bots
     private slave: Slave; // for executing commands from the teamleader via the teamcoordinator
     private planeTypeSelection: PlaneTypeSelection;
-    
+
     set canPause(value: boolean) {
         if (!this.isSpawned) {
             return;
@@ -49,11 +49,11 @@ export class AirmashBot {
     private get env(): IAirmashEnvironment {
         return this.context.env;
     }
-    
+
     private get logger(): Logger {
         return this.context.logger;
     }
-    
+
     private get character(): BotCharacter {
         return this.context.character;
     }
@@ -170,10 +170,10 @@ export class AirmashBot {
 
     private logState() {
         const me = this.env.me();
-        this.logger.info('BotInfo', { name: me.name, ping: this.env.getPing() });
-        this.logger.info('BotInfo', { score: this.score.score, energy: me.energy, health: me.health });
+        this.logger.debug('BotInfo', { name: me.name, ping: this.env.getPing() });
+        this.logger.debug('BotInfo', { score: this.score.score, energy: me.energy, health: me.health });
         if (me.upgrades && (me.upgrades.speed === 0 || me.upgrades.speed > 0)) {
-            this.logger.info('Upgrade levels', me.upgrades);
+            this.logger.debug('Upgrade levels', me.upgrades);
         }
     }
 
