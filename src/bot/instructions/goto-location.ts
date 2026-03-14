@@ -58,17 +58,30 @@ export class GotoLocationInstruction implements IInstruction {
                 honoredPathFindingRequests++;
             }
 
-            if (!this.config.lastPath || this.config.lastPath.length === 0) {
-                throw new Error("did not find a path");
+            // If we have a cached path, use it
+            if (this.config.lastPath && this.config.lastPath.length > 0) {
+                this.config.errors = 0;
+                return this.config.lastPath[1]; // first pos is always my own pos
             }
 
-            this.config.errors = 0;
-            return this.config.lastPath[1]; // first pos is always my own pos
+            // Fallback: if no cached path and we're in backoff, use direct navigation to target
+            if (this.config.isPathfindingInBackoff()) {
+                return targetPos;
+            }
+
+            // No path found and not in backoff - this is a real error
+            throw new Error("did not find a path");
         } catch (error) {
             this.config.errors++;
+            this.config.recordPathfindingError();
             pathfindingRequestsFailed++;
             if (this.config.errors > 20) {
                 fatalPathFindingFailures++;
+                this.logger.warn(
+                    `Pathfinding fatal failure after ${this.config.errors} consecutive errors. ` +
+                    `Position: (${myPos.x}, ${myPos.y}), Target: (${targetPos.x}, ${targetPos.y}), ` +
+                    `Error: ${error?.message || String(error)}`
+                );
                 throw error;
             }
         } finally {

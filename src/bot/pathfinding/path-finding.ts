@@ -148,7 +148,7 @@ class PathFinding {
                             reject(error)
                         }
                     } else {
-                        reject('no path found');
+                        reject(new Error('no path found'));
                     }
                     return;
                 }

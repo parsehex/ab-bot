@@ -12,6 +12,9 @@ const caches = {};
 const absoluteThrottleTimer = new StopWatch();
 absoluteThrottleTimer.start();
 
+const PATHFINDING_FAILURE_BACKOFF_MS = 500; // Backoff delay when pathfinding fails repeatedly
+const MAX_PATHFINDING_ERRORS_BEFORE_BACKOFF = 5; // After this many errors, apply backoff
+
 export class GotoLocationConfig {
     private readonly id: number;
 
@@ -21,6 +24,8 @@ export class GotoLocationConfig {
             sw: new StopWatch(),
             lastPath: [],
             throttleMs: 0,
+            lastPathfindingFailureTime: 0,
+            consecutivePathfindingErrors: 0,
         };
     }
 
@@ -46,6 +51,7 @@ export class GotoLocationConfig {
         this.myThrottleTimer.start();
         absoluteThrottleTimer.start();
         this.lastPath = path;
+        caches[this.id].consecutivePathfindingErrors = 0; // Reset error count on successful path
 
         if (path && path.length > 1) {
             const myPos = path[0];
@@ -58,8 +64,27 @@ export class GotoLocationConfig {
         }
     }
 
+    recordPathfindingError(): void {
+        caches[this.id].consecutivePathfindingErrors++;
+        caches[this.id].lastPathfindingFailureTime = Date.now();
+    }
+
+    isPathfindingInBackoff(): boolean {
+        const consecutiveErrors = caches[this.id].consecutivePathfindingErrors;
+        if (consecutiveErrors < MAX_PATHFINDING_ERRORS_BEFORE_BACKOFF) {
+            return false;
+        }
+        const timeSinceFailure = Date.now() - caches[this.id].lastPathfindingFailureTime;
+        return timeSinceFailure < PATHFINDING_FAILURE_BACKOFF_MS;
+    }
+
     shouldCalculatePath(): boolean {
         if (absoluteThrottleTimer.elapsedMs() < ABSOLUTE_THROTTLE_MS) {
+            return false;
+        }
+
+        // Don't try pathfinding if we're in backoff due to repeated failures
+        if (this.isPathfindingInBackoff()) {
             return false;
         }
 
@@ -68,10 +93,10 @@ export class GotoLocationConfig {
         }
         const timeoutMs = Math.min(Math.max(this.myThrottleMs, PATH_FINDING_LOWER_LIMIT_MS), PATH_FINDING_UPPER_LIMIT_MS);
         return this.myThrottleTimer.elapsedMs() > timeoutMs;
-    } 
+    }
 
     targetPos: Pos;
-    desiredDistanceToTarget: number; 
+    desiredDistanceToTarget: number;
     shouldFleeFrom: boolean;
     errors = 0;
     flyBackwards: boolean;
