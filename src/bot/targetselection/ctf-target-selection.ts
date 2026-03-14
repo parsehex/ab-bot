@@ -229,6 +229,45 @@ export class CtfTargetSelection implements ITargetSelection {
 
         const doDefensiveActions = this.myRole === "D" || this.distanceToMyFlag < this.distanceToOtherFlag;
 
+        // Goliath should move to meet teammate with flag for handoff
+        const me = this.env.me();
+        if (me.type === 2) {
+            const flagInfo = this.env.getFlagInfo(this.otherTeam);
+            if (flagInfo && flagInfo.carrierId && flagInfo.carrierId !== -1) {
+                const carrier = this.env.getPlayer(flagInfo.carrierId);
+                if (carrier && carrier.team === this.myTeam && carrier.type !== 2) {
+                    // Check if I'm the closest goliath to the carrier
+                    const allGoliaths = this.env.getPlayers().filter(p => 
+                        p.team === this.myTeam && p.type === 2 && p.id !== this.myId && PlayerInfo.isActive(p)
+                    );
+                    
+                    let isClosestGoli = true;
+                    if (allGoliaths.length > 0) {
+                        const myDistToCarrier = this.getDistance(PlayerInfo.getMostReliablePos(carrier), me.pos);
+                        for (const goli of allGoliaths) {
+                            const goliDistToCarrier = this.getDistance(PlayerInfo.getMostReliablePos(carrier), PlayerInfo.getMostReliablePos(goli));
+                            if (goliDistToCarrier < myDistToCarrier) {
+                                isClosestGoli = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (isClosestGoli) {
+                        // I'm the closest goli - move to meet carrier without distance limit
+                        const meetTarget = new MeetTarget(this.env, this.logger, carrier.id);
+                        meetTarget.setInfo(`gathering with flag carrier ${carrier.name}`);
+                        return meetTarget;
+                    } else {
+                        // I'm not the closest - go to enemy base for potential re-grab
+                        const goToEnemyBase = new GotoLocationTarget(this.env, this.logger, this.defaultOtherFlagPos);
+                        goToEnemyBase.setInfo("heading to enemy base for re-grab");
+                        return goToEnemyBase;
+                    }
+                }
+            }
+        }
+
         if (this.flagState === FlagStates.ImCarrier || this.flagState === FlagStates.ImCarrierInDangerZone) {
             if (this.env.me().type !== 2) {
                 const goliaths = this.env.getPlayers().filter(p => p.team === this.myTeam && p.type === 2 && p.id !== this.myId && PlayerInfo.isActive(p));
@@ -245,6 +284,31 @@ export class CtfTargetSelection implements ITargetSelection {
                     if (distToGoli < 400) {
                         const target = new HandOverFlagTarget(this.env, this.logger, closestGoliath.id, true);
                         return target;
+                    } else if (distToGoli < 1000) {
+                        // Move toward closest goli if they're within reasonable range but not immediate handoff distance
+                        // But check safety first
+                        const myPos = this.env.me().pos;
+                        const enemies = this.env.getPlayers().filter(p => p.team !== this.myTeam && PlayerInfo.isActive(p) && !p.isHidden);
+                        let isSafe = true;
+
+                        if (enemies.length > 0) {
+                            enemies.sort((a, b) => {
+                                const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), myPos);
+                                const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), myPos);
+                                return distA - distB;
+                            });
+
+                            const closestEnemyDist = this.getDistance(PlayerInfo.getMostReliablePos(enemies[0]), myPos);
+                            if (closestEnemyDist < 800) {
+                                isSafe = false;
+                            }
+                        }
+
+                        if (isSafe) {
+                            const meetTarget = new MeetTarget(this.env, this.logger, closestGoliath.id);
+                            meetTarget.setInfo(`moving toward goliath ${closestGoliath.name} for handoff`);
+                            return meetTarget;
+                        }
                     }
                 }
 
