@@ -83,10 +83,10 @@ export class BotContext {
         if (!this.identity) {
             this.identity = this.identityGenerator.generateIdentity(this.botIndex);
         }
-        
+
         const identity = this.identity;
         this.character = BotCharacter[this.characterConfig] || BotCharacter.get(identity.aircraftType);
-        
+
         if (!this.logger) {
             this.logger = new Logger(this.botIndex, identity.name, this.isDevelopment, this.logLevel);
         }
@@ -103,14 +103,17 @@ export class BotContext {
         this.env = new AirmashApiFacade(this.websocketUrl, this.logger, this.tm);
         this.env.start();
 
-        // throttle joining of the bots to prevent spamming the server.
-        this.bot = new AirmashBot(this, this.isSecondaryTeamCoordinator);
-        const timeOutMs = this.botIndex * 500;
-        this.tm.setTimeout(() => this.bot.join(identity.name, identity.flag, identity.aircraftType), timeOutMs);
-
-        if (this.spawner) {
-            // this is the first bot: it should keep track of the number of bots
-            this.spawner.start();
+        if (this.botIndex === 0) {
+            // Coordinator bot: connects to server for state monitoring but doesn't join as a player
+            this.logger.info('Running as coordinator (monitoring only, not playing)');
+            if (this.spawner) {
+                this.spawner.start();
+            }
+        } else {
+            // Worker bot: normal gameplay
+            this.bot = new AirmashBot(this, this.isSecondaryTeamCoordinator);
+            const timeOutMs = this.botIndex * 500;
+            this.tm.setTimeout(() => this.bot.join(identity.name, identity.flag, identity.aircraftType), timeOutMs);
         }
     }
 
