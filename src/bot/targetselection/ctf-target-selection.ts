@@ -282,11 +282,12 @@ export class CtfTargetSelection implements ITargetSelection {
                 this.flagState === FlagStates.ImCarrierInDangerZone ||
                 distToEnemyBase < ENEMY_BASE_HANDOFF_BLOCK_RADIUS;
 
-            let lowHealthThreshold = 0.25;
+            let proactiveHandoffLowHealthThreshold = 0.25;
             if (meInfo.type === 2) {
-                lowHealthThreshold = 1 / 3;
+                proactiveHandoffLowHealthThreshold = 1 / 3;
             }
-            const urgentHandoffNeeded = meInfo.hasShield || meInfo.health <= lowHealthThreshold;
+            const urgentHandoffNeeded =
+                meInfo.hasShield || meInfo.health <= proactiveHandoffLowHealthThreshold;
             const allowProactiveHandoff = !nearEnemyBase || urgentHandoffNeeded;
 
             if (this.env.me().type !== 2) {
