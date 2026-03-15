@@ -110,4 +110,3 @@ class HandOverFlagTarget extends BaseTarget {
 }
 
 export { HandOverFlagTarget, TOO_FAR_AWAY_FOR_POOPING_FLAG }
-

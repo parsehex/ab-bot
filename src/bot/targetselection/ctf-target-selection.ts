@@ -76,9 +76,8 @@ export class CtfTargetSelection implements ITargetSelection {
     private lastStuckCheckPos: Pos;
     private stuckStopwatch = new StopWatch();
 
-    // Non-bot flag handoff
+    // Human catch-up handoff
     private flagOfferPlayerId: number = null;
-    private flagOfferChatStopwatch = new StopWatch();
     private flagOfferOnTopStopwatch = new StopWatch();
     private lastHandoffTargetId: number = null;
     private lastHandoffAttemptAtMs = 0;
@@ -107,7 +106,6 @@ export class CtfTargetSelection implements ITargetSelection {
         this.stopwatch.start();
 
         this.flagOfferPlayerId = null;
-        this.flagOfferChatStopwatch.start();
         this.flagOfferOnTopStopwatch.start();
         this.lastHandoffTargetId = null;
         this.lastHandoffAttemptAtMs = 0;
@@ -243,10 +241,10 @@ export class CtfTargetSelection implements ITargetSelection {
                 const carrier = this.env.getPlayer(flagInfo.carrierId);
                 if (carrier && carrier.team === this.myTeam && carrier.type !== 2) {
                     // Check if I'm the closest goliath to the carrier
-                    const allGoliaths = this.env.getPlayers().filter(p => 
+                    const allGoliaths = this.env.getPlayers().filter(p =>
                         p.team === this.myTeam && p.type === 2 && p.id !== this.myId && PlayerInfo.isActive(p)
                     );
-                    
+
                     let isClosestGoli = true;
                     if (allGoliaths.length > 0) {
                         const myDistToCarrier = this.getDistance(PlayerInfo.getMostReliablePos(carrier), me.pos);
@@ -291,92 +289,31 @@ export class CtfTargetSelection implements ITargetSelection {
             const allowProactiveHandoff = !nearEnemyBase || urgentHandoffNeeded;
 
             if (this.env.me().type !== 2) {
-                const goliaths = this.env.getPlayers().filter(p => p.team === this.myTeam && p.type === 2 && p.id !== this.myId && PlayerInfo.isActive(p));
-                if (goliaths.length > 0) {
-                    goliaths.sort((a, b) => {
-                        const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), this.env.me().pos);
-                        const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), this.env.me().pos);
-                        return distA - distB;
-                    });
-
-                    const closestGoliath = goliaths[0];
-                    const distToGoli = this.getDistance(PlayerInfo.getMostReliablePos(closestGoliath), this.env.me().pos);
-
-                    if (allowProactiveHandoff && distToGoli < 400) {
-                        const target = new HandOverFlagTarget(this.env, this.logger, closestGoliath.id, true);
-                        return target;
-                    } else if (allowProactiveHandoff && distToGoli < 1000) {
-                        // Move toward closest goli if they're within reasonable range but not immediate handoff distance
-                        // But check safety first
-                        const myPos = this.env.me().pos;
-                        const enemies = this.env.getPlayers().filter(p => p.team !== this.myTeam && PlayerInfo.isActive(p) && !p.isHidden);
-                        let isSafe = true;
-
-                        if (enemies.length > 0) {
-                            enemies.sort((a, b) => {
-                                const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), myPos);
-                                const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), myPos);
-                                return distA - distB;
-                            });
-
-                            const closestEnemyDist = this.getDistance(PlayerInfo.getMostReliablePos(enemies[0]), myPos);
-                            if (closestEnemyDist < 800) {
-                                isSafe = false;
-                            }
-                        }
-
-                        if (isSafe) {
-                            const meetTarget = new MeetTarget(this.env, this.logger, closestGoliath.id);
-                            meetTarget.setInfo(`moving toward goliath ${closestGoliath.name} for handoff`);
-                            return meetTarget;
-                        }
-                    }
-                }
-
-                // Flag handoff to teammates
-                const meType = this.env.me().type;
                 const myPos = this.env.me().pos;
+                const humanReceivers = this.env.getPlayers().filter(p =>
+                    p.team === this.myTeam &&
+                    p.id !== this.myId &&
+                    PlayerInfo.isActive(p) &&
+                    !p.name.endsWith("_")
+                );
 
-                let receivers = this.env.getPlayers().filter(p => {
-                    if (p.team !== this.myTeam || p.id === this.myId || !PlayerInfo.isActive(p)) return false;
-
-                    if (meType === 3) {
-                        if (p.type === 3 && p.name.endsWith("_")) return false;
-                        return true;
-                    } else {
-                        // Non-(heli or non-goliath) bots only drop to humans
-                        return !p.name.endsWith("_");
-                    }
-                });
-
-                if (receivers.length > 0) {
-                    receivers.sort((a, b) => {
-                        const getScore = (p: PlayerInfo) => {
-                            const isHuman = !p.name.endsWith("_");
-                            if (isHuman && p.type !== 3) return 1; // Human non-heli
-                            if (!isHuman && p.type !== 3) return 2; // Bot non-heli
-                            if (isHuman && p.type === 3) return 3; // Human heli
-                            return 4; // Backup
-                        };
-
-                        const scoreA = getScore(a);
-                        const scoreB = getScore(b);
-                        if (scoreA !== scoreB) return scoreA - scoreB;
-
+                if (humanReceivers.length > 0) {
+                    humanReceivers.sort((a, b) => {
                         const distA = this.getDistance(PlayerInfo.getMostReliablePos(a), myPos);
                         const distB = this.getDistance(PlayerInfo.getMostReliablePos(b), myPos);
                         return distA - distB;
                     });
 
-                    const bestReceiver = receivers[0];
-                    const distToReceiver = this.getDistance(PlayerInfo.getMostReliablePos(bestReceiver), myPos);
+                    const closestHuman = humanReceivers[0];
+                    const distToHuman = this.getDistance(PlayerInfo.getMostReliablePos(closestHuman), myPos);
                     const isRetryingSameReceiverTooSoon =
-                        this.lastHandoffTargetId === bestReceiver.id &&
+                        this.lastHandoffTargetId === closestHuman.id &&
                         Date.now() - this.lastHandoffAttemptAtMs < HANDOFF_RETRY_COOLDOWN_MS;
 
-                    if (allowProactiveHandoff && !isRetryingSameReceiverTooSoon && distToReceiver < 400) {
-                        // Check if enemies are nearby
-                        const enemies = this.env.getPlayers().filter(p => p.team !== this.myTeam && PlayerInfo.isActive(p) && !p.isHidden);
+                    if (allowProactiveHandoff && !isRetryingSameReceiverTooSoon && distToHuman < 120) {
+                        const enemies = this.env.getPlayers().filter(
+                            p => p.team !== this.myTeam && PlayerInfo.isActive(p) && !p.isHidden
+                        );
                         let isSafe = true;
 
                         if (enemies.length > 0) {
@@ -393,32 +330,20 @@ export class CtfTargetSelection implements ITargetSelection {
                         }
 
                         if (isSafe) {
-                            if (this.flagOfferPlayerId !== bestReceiver.id) {
-                                this.flagOfferPlayerId = bestReceiver.id;
-                                this.flagOfferChatStopwatch.start();
+                            if (this.flagOfferPlayerId !== closestHuman.id) {
+                                this.flagOfferPlayerId = closestHuman.id;
                                 this.flagOfferOnTopStopwatch.start();
                             }
 
-                            if (this.flagOfferChatStopwatch.elapsedSeconds() > 10) {
-                                this.env.sendChat(`Hey ${bestReceiver.name}, want the flag? Come here`, false);
-                                this.flagOfferChatStopwatch.start();
-                            }
-
-                            if (distToReceiver < 120) {
-                                if (this.flagOfferOnTopStopwatch.elapsedSeconds() > 1) {
-                                    this.logger.info(`Handing flag over to teammate ${bestReceiver.name}`);
-                                    const target = new HandOverFlagTarget(this.env, this.logger, bestReceiver.id, true);
-                                    target.isSticky = true;
-                                    this.lastHandoffTargetId = bestReceiver.id;
-                                    this.lastHandoffAttemptAtMs = Date.now();
-
-                                    this.flagOfferPlayerId = null;
-                                    this.flagOfferOnTopStopwatch.start();
-
-                                    return target;
-                                }
-                            } else {
+                            if (this.flagOfferOnTopStopwatch.elapsedSeconds() > 0.8) {
+                                this.logger.info(`Handing flag over to nearby teammate ${closestHuman.name}`);
+                                const target = new HandOverFlagTarget(this.env, this.logger, closestHuman.id, true);
+                                target.isSticky = true;
+                                this.lastHandoffTargetId = closestHuman.id;
+                                this.lastHandoffAttemptAtMs = Date.now();
+                                this.flagOfferPlayerId = null;
                                 this.flagOfferOnTopStopwatch.start();
+                                return target;
                             }
                         } else {
                             this.flagOfferPlayerId = null;
