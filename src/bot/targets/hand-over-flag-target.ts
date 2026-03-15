@@ -11,7 +11,7 @@ import { Pos } from "../pos";
 import { Logger } from "../../helper/logger";
 
 const TIME_OUT_SECS = 10;
-const POOP_DISTANCE = 40;
+const POOP_DISTANCE = 80;
 const TOO_FAR_AWAY_FOR_POOPING_FLAG = 1500;
 
 class HandOverFlagTarget extends BaseTarget {
@@ -78,7 +78,7 @@ class HandOverFlagTarget extends BaseTarget {
         const targetPos = PlayerInfo.getMostReliablePos(target);
 
         const delta = Calculations.getDelta(this.env.me().pos, targetPos);
-        if (targetPos.isAccurate && delta.distance < POOP_DISTANCE) {
+        if (delta.distance < POOP_DISTANCE) {
             // within poopable distance
             this.env.sendSay("Good luck!", false);
             this.env.sendCommand("drop", "");

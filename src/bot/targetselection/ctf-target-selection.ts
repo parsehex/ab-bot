@@ -47,6 +47,8 @@ const FIGHT_DISTANCE_THRESHOLD = 300;
 const ATTACKER_FIGHT_DISTANCE_THRESHOLD = 1500;
 const PROTECT_FLAG_DISTANCE = 700;
 const PROTECT_PLAYER_DISTANCE = 10;
+const ENEMY_BASE_HANDOFF_BLOCK_RADIUS = 1700;
+const HANDOFF_RETRY_COOLDOWN_MS = 5000;
 
 export class CtfTargetSelection implements ITargetSelection {
 
@@ -78,6 +80,8 @@ export class CtfTargetSelection implements ITargetSelection {
     private flagOfferPlayerId: number = null;
     private flagOfferChatStopwatch = new StopWatch();
     private flagOfferOnTopStopwatch = new StopWatch();
+    private lastHandoffTargetId: number = null;
+    private lastHandoffAttemptAtMs = 0;
 
     private get env(): IAirmashEnvironment {
         return this.context.env;
@@ -105,6 +109,8 @@ export class CtfTargetSelection implements ITargetSelection {
         this.flagOfferPlayerId = null;
         this.flagOfferChatStopwatch.start();
         this.flagOfferOnTopStopwatch.start();
+        this.lastHandoffTargetId = null;
+        this.lastHandoffAttemptAtMs = 0;
 
         this.slave.repeatLastCommand();
     }
@@ -269,6 +275,20 @@ export class CtfTargetSelection implements ITargetSelection {
         }
 
         if (this.flagState === FlagStates.ImCarrier || this.flagState === FlagStates.ImCarrierInDangerZone) {
+            const meInfo = this.env.me();
+            const myPos = meInfo.pos;
+            const distToEnemyBase = this.getDistance(myPos, this.defaultOtherFlagPos);
+            const nearEnemyBase =
+                this.flagState === FlagStates.ImCarrierInDangerZone ||
+                distToEnemyBase < ENEMY_BASE_HANDOFF_BLOCK_RADIUS;
+
+            let lowHealthThreshold = 0.25;
+            if (meInfo.type === 2) {
+                lowHealthThreshold = 1 / 3;
+            }
+            const urgentHandoffNeeded = meInfo.hasShield || meInfo.health <= lowHealthThreshold;
+            const allowProactiveHandoff = !nearEnemyBase || urgentHandoffNeeded;
+
             if (this.env.me().type !== 2) {
                 const goliaths = this.env.getPlayers().filter(p => p.team === this.myTeam && p.type === 2 && p.id !== this.myId && PlayerInfo.isActive(p));
                 if (goliaths.length > 0) {
@@ -281,10 +301,10 @@ export class CtfTargetSelection implements ITargetSelection {
                     const closestGoliath = goliaths[0];
                     const distToGoli = this.getDistance(PlayerInfo.getMostReliablePos(closestGoliath), this.env.me().pos);
 
-                    if (distToGoli < 400) {
+                    if (allowProactiveHandoff && distToGoli < 400) {
                         const target = new HandOverFlagTarget(this.env, this.logger, closestGoliath.id, true);
                         return target;
-                    } else if (distToGoli < 1000) {
+                    } else if (allowProactiveHandoff && distToGoli < 1000) {
                         // Move toward closest goli if they're within reasonable range but not immediate handoff distance
                         // But check safety first
                         const myPos = this.env.me().pos;
@@ -349,8 +369,11 @@ export class CtfTargetSelection implements ITargetSelection {
 
                     const bestReceiver = receivers[0];
                     const distToReceiver = this.getDistance(PlayerInfo.getMostReliablePos(bestReceiver), myPos);
+                    const isRetryingSameReceiverTooSoon =
+                        this.lastHandoffTargetId === bestReceiver.id &&
+                        Date.now() - this.lastHandoffAttemptAtMs < HANDOFF_RETRY_COOLDOWN_MS;
 
-                    if (distToReceiver < 400) {
+                    if (allowProactiveHandoff && !isRetryingSameReceiverTooSoon && distToReceiver < 400) {
                         // Check if enemies are nearby
                         const enemies = this.env.getPlayers().filter(p => p.team !== this.myTeam && PlayerInfo.isActive(p) && !p.isHidden);
                         let isSafe = true;
@@ -385,6 +408,8 @@ export class CtfTargetSelection implements ITargetSelection {
                                     this.logger.info(`Handing flag over to teammate ${bestReceiver.name}`);
                                     const target = new HandOverFlagTarget(this.env, this.logger, bestReceiver.id, true);
                                     target.isSticky = true;
+                                    this.lastHandoffTargetId = bestReceiver.id;
+                                    this.lastHandoffAttemptAtMs = Date.now();
 
                                     this.flagOfferPlayerId = null;
                                     this.flagOfferOnTopStopwatch.start();
@@ -432,6 +457,8 @@ export class CtfTargetSelection implements ITargetSelection {
                                 const target = new HandOverFlagTarget(this.env, this.logger, closestTeammate.id, true);
                                 target.isSticky = true;
                                 this.logger.info("Stuck, handover to " + closestTeammate.name);
+                                this.lastHandoffTargetId = closestTeammate.id;
+                                this.lastHandoffAttemptAtMs = Date.now();
 
                                 // Reset the tracker so we don't spam if they drop and re-grab
                                 this.lastStuckCheckPos = new Pos(myPos);
@@ -448,9 +475,6 @@ export class CtfTargetSelection implements ITargetSelection {
                 }
             }
 
-            const meInfo = this.env.me();
-            const myPos = meInfo.pos;
-
             // Shield handoff
             if (meInfo.hasShield) {
                 const teammates = this.env.getPlayers().filter(p => p.team === this.myTeam && p.id !== this.myId && PlayerInfo.isActive(p));
@@ -464,6 +488,8 @@ export class CtfTargetSelection implements ITargetSelection {
                     if (this.getDistance(PlayerInfo.getMostReliablePos(closestTeammate), myPos) < 40) {
                         const target = new HandOverFlagTarget(this.env, this.logger, closestTeammate.id, true);
                         target.isSticky = true;
+                        this.lastHandoffTargetId = closestTeammate.id;
+                        this.lastHandoffAttemptAtMs = Date.now();
                         return target;
                     }
                 }
@@ -522,6 +548,8 @@ export class CtfTargetSelection implements ITargetSelection {
                             }
                             const target = new HandOverFlagTarget(this.env, this.logger, closestHealthyTeammate.id, true);
                             target.isSticky = true;
+                            this.lastHandoffTargetId = closestHealthyTeammate.id;
+                            this.lastHandoffAttemptAtMs = Date.now();
                             return target;
                         }
                     }
